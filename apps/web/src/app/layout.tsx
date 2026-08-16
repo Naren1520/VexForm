@@ -43,6 +43,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        <meta
+          name="google-site-verification"
+          content="dFsm2JtlLitYwJgDDZCH4_BvJ6mPSUKiCjAusz5_DMw"
+        />
+      </head>
       <body>{children}</body>
     </html>
   )
