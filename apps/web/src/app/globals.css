@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --forge-bg:      #0a0a0f;
+  --forge-surface: #111118;
+  --forge-blue:    #4488FF;
+  --forge-text:    #f0f0f0;
+  --forge-muted:   #888899;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--forge-bg);
+  color: var(--forge-text);
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Liquid glass utility */
+.glass {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-hover {
+  transition: background 0.2s ease, backdrop-filter 0.2s ease;
+}
+.glass-hover:hover {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+}
+
+/* Engineering grid background */
+.bg-engineering-grid {
+  background-image:
+    linear-gradient(rgba(68, 136, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(68, 136, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--forge-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* CAD Studio specific */
+.studio-layout {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.viewport-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Suppress Three.js canvas outline */
+canvas:focus {
+  outline: none;
+}
+
+/* Feature tree node */
+.feature-node {
+  transition: background 0.15s ease;
+}
+.feature-node:hover {
+  background: rgba(68, 136, 255, 0.08);
+}
+.feature-node.selected {
+  background: rgba(68, 136, 255, 0.15);
+  border-left: 2px solid #4488FF;
+}
+
+/* Parameter field status borders */
+.param-ai-match    { border-color: #4488FF !important; }
+.param-ai-deviation{ border-color: #FF4444 !important; }
+.param-ai-null     { border-color: #888888 !important; }
+.param-user-edited { border-color: rgba(255,255,255,0.2) !important; }
+
+/* Toast */
+.toast-enter {
+  animation: fadeUp 0.3s ease forwards;
+}
