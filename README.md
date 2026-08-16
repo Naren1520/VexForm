@@ -3,14 +3,14 @@
 **From Engineering Drawings to Intelligent 3D Reality.**
 
 VexForm converts 2D mechanical engineering blueprints into validated 3D solid models using:
-- **Gemini Vision API** — AI-powered dimension extraction from blueprint images
-- **OpenCascade (pythonocc-core)** — True Boolean solid geometry with real material cuts
-- **Next.js 15 + React Three Fiber** — Interactive 3D viewer with section view, wireframe, measurement
-- **FastAPI** — Backend CAD engine with geometry constraint validation
+- **Gemini Vision API** ï¿½ AI-powered dimension extraction from blueprint images
+- **OpenCascade (pythonocc-core)** ï¿½ True Boolean solid geometry with real material cuts
+- **Next.js 15 + React Three Fiber** ï¿½ Interactive 3D viewer with section view, wireframe, measurement
+- **FastAPI** ï¿½ Backend CAD engine with geometry constraint validation
 
 ## Target Part
 
-Lower Valve Body — Injector Assembly (Globe Valve type), Material: HT150
+Lower Valve Body ï¿½ Injector Assembly (Globe Valve type), Material: HT150
 
 ---
 
@@ -19,8 +19,8 @@ Lower Valve Body — Injector Assembly (Globe Valve type), Material: HT150
 ```
 vexform/
 +-- apps/
-¦   +-- web/          # Next.js 15 frontend
-¦   +-- api/          # FastAPI + OpenCascade backend
+ï¿½   +-- web/          # Next.js 15 frontend
+ï¿½   +-- api/          # FastAPI + OpenCascade backend
 +-- packages/
     +-- types/        # Shared TypeScript interfaces
 ```
@@ -70,13 +70,13 @@ Or use the pre-built wheel from the pythonocc releases page.
 
 ### 4. Run both services
 
-**Terminal 1 — API backend:**
+**Terminal 1 ï¿½ API backend:**
 ```bash
 cd apps/api
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8001
 ```
 
-**Terminal 2 — Frontend:**
+**Terminal 2 ï¿½ Frontend:**
 ```bash
 cd apps/web
 pnpm dev
@@ -88,12 +88,12 @@ Open http://localhost:3000
 
 ## Demo Workflow
 
-1. Open http://localhost:3000 — VexForm landing page
+1. Open http://localhost:3000 ï¿½ VexForm landing page
 2. Click **Launch CAD Studio**
 3. Upload the engineering blueprint (JPEG/PNG/PDF)
-4. Click **Analyze Blueprint** — Gemini extracts 28 parameters
+4. Click **Analyze Blueprint** ï¿½ Gemini extracts 28 parameters
 5. Review parameters (AI-extracted fields shown in blue, deviations in red)
-6. Click **Generate 3D Model** — OpenCascade builds the solid
+6. Click **Generate 3D Model** ï¿½ OpenCascade builds the solid
 7. Rotate, zoom the model with mouse
 8. Toggle **Wireframe** to see mesh structure
 9. Enable **Section** and drag the slider to reveal internal bores
@@ -121,15 +121,15 @@ Open http://localhost:3000
 1.  Base Cylinder            BRepPrimAPI_MakeCylinder
 2.  Top Flange Extrusion     BRepAlgoAPI_Fuse
 3.  Bottom Flange Extrusion  BRepAlgoAPI_Fuse
-4.  Side Port Boss           BRepAlgoAPI_Fuse (rotated 135°)
-5.  Upper Bore Cut           BRepAlgoAPI_Cut  Ø28mm
-6.  Lower Bore Cut           BRepAlgoAPI_Cut  Ø26mm
-7.  Side Port Bore Cut       BRepAlgoAPI_Cut  Ø20mm @ 135°
-8.  Top Bolt Holes Cut       BRepAlgoAPI_Cut  4× Ø7mm
-9.  Top Counterbores Cut     BRepAlgoAPI_Cut  4× Ø13mm
-10. Bottom Bolt Holes Cut    BRepAlgoAPI_Cut  4× Ø7mm
-11. Bottom Counterbores Cut  BRepAlgoAPI_Cut  4× Ø13mm
-12. Side Port Bolt Holes     BRepAlgoAPI_Cut  2× Ø7mm
+4.  Side Port Boss           BRepAlgoAPI_Fuse (rotated 135ï¿½)
+5.  Upper Bore Cut           BRepAlgoAPI_Cut  ï¿½28mm
+6.  Lower Bore Cut           BRepAlgoAPI_Cut  ï¿½26mm
+7.  Side Port Bore Cut       BRepAlgoAPI_Cut  ï¿½20mm @ 135ï¿½
+8.  Top Bolt Holes Cut       BRepAlgoAPI_Cut  4ï¿½ ï¿½7mm
+9.  Top Counterbores Cut     BRepAlgoAPI_Cut  4ï¿½ ï¿½13mm
+10. Bottom Bolt Holes Cut    BRepAlgoAPI_Cut  4ï¿½ ï¿½7mm
+11. Bottom Counterbores Cut  BRepAlgoAPI_Cut  4ï¿½ ï¿½13mm
+12. Side Port Bolt Holes     BRepAlgoAPI_Cut  2ï¿½ ï¿½7mm
 13. Fillets                  BRepFilletAPI_MakeFillet  R1mm
 14. Chamfers                 BRepFilletAPI_MakeChamfer C1.5mm + C1mm
     ? BRepCheck_Analyzer validation ? mesh tessellation ? Three.js render

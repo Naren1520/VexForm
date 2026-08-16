@@ -365,16 +365,31 @@ def build_lower_valve_body(
         raise GeometryError("build_lower_valve_body", f"exceeded 60-second timeout ({elapsed:.1f}s)")
 
     checker = occ["BRepCheck_Analyzer"](solid)
-    if not checker.IsValid():
+    # Note: IsValid() on a compound may be False even when sub-solids are valid.
+    # We check validity after extracting the solid below if needed.
+    is_valid = checker.IsValid()
+
+    if solid.ShapeType() != occ["TopAbs_SOLID"]:
+        from OCC.Core.TopExp import TopExp_Explorer
+        from OCC.Core.TopAbs import TopAbs_SOLID as _SOLID
+        explorer = TopExp_Explorer(solid, _SOLID)
+        if explorer.More():
+            solid = explorer.Current()
+            logger.info("Extracted solid from compound shape")
+            checker2 = occ["BRepCheck_Analyzer"](solid)
+            is_valid = checker2.IsValid()
+        else:
+            raise GeometryError(
+                "BRepCheck_Analyzer",
+                f"shape type is not TopAbs_SOLID (got {solid.ShapeType()}) and no solid found in compound",
+            )
+
+    if not is_valid:
         raise GeometryError(
             "BRepCheck_Analyzer",
             "shape is invalid (not manifold or has self-intersections)",
         )
-    if solid.ShapeType() != occ["TopAbs_SOLID"]:
-        raise GeometryError(
-            "BRepCheck_Analyzer",
-            f"shape type is not TopAbs_SOLID (got {solid.ShapeType()})",
-        )
 
     logger.info(f"Geometry built successfully in {elapsed:.2f}s")
     return solid, tree
+
