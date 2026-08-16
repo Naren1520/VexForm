@@ -1,150 +1,593 @@
+<div align="center">
+
 # VexForm
 
-**From Engineering Drawings to Intelligent 3D Reality.**
+### From Engineering Drawings to Intelligent 3D Reality
 
-VexForm converts 2D mechanical engineering blueprints into validated 3D solid models using:
-- **Gemini Vision API** � AI-powered dimension extraction from blueprint images
-- **OpenCascade (pythonocc-core)** � True Boolean solid geometry with real material cuts
-- **Next.js 15 + React Three Fiber** � Interactive 3D viewer with section view, wireframe, measurement
-- **FastAPI** � Backend CAD engine with geometry constraint validation
+VexForm converts 2D mechanical engineering blueprints into validated, interactive 3D solid models — powered by AI vision and a real CAD kernel.
 
-## Target Part
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org)
+[![OpenCascade](https://img.shields.io/badge/OpenCascade-7.9-blue)](https://dev.opencascade.org)
+[![Gemini](https://img.shields.io/badge/Gemini-1.5_Flash-8B5CF6?logo=google&logoColor=white)](https://deepmind.google/technologies/gemini)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-Lower Valve Body � Injector Assembly (Globe Valve type), Material: HT150
-
----
-
-## Project Structure
-
-```
-vexform/
-+-- apps/
-�   +-- web/          # Next.js 15 frontend
-�   +-- api/          # FastAPI + OpenCascade backend
-+-- packages/
-    +-- types/        # Shared TypeScript interfaces
-```
+</div>
 
 ---
 
-## Quick Start
+## Table of Contents
 
-### Prerequisites
-
-- Node.js 20+
-- pnpm 9+
-- Python 3.11+
-- pythonocc-core 7.9 (see install notes below)
-
-### 1. Clone & install
-
-```bash
-git clone <repo>
-cd vexform
-pnpm install
-```
-
-### 2. Environment variables
-
-```bash
-cp .env.example .env
-# Edit .env and set your GEMINI_API_KEY
-```
-
-### 3. Install Python dependencies
-
-```bash
-cd apps/api
-pip install -r requirements.txt
-```
-
-#### Installing pythonocc-core (OpenCascade Python bindings)
-
-pythonocc-core is not on PyPI for all platforms. Use conda:
-
-```bash
-conda install -c conda-forge pythonocc-core=7.9.0
-```
-
-Or use the pre-built wheel from the pythonocc releases page.
-
-### 4. Run both services
-
-**Terminal 1 � API backend:**
-```bash
-cd apps/api
-uvicorn main:app --reload --host 0.0.0.0 --port 8001
-```
-
-**Terminal 2 � Frontend:**
-```bash
-cd apps/web
-pnpm dev
-```
-
-Open http://localhost:3000
+- [Overview](#overview)
+- [Tech Stack](#tech-stack)
+- [System Architecture](#system-architecture)
+- [Project Workflow](#project-workflow)
+- [CAD Pipeline](#cad-pipeline-14-boolean-operations)
+- [Folder Structure](#folder-structure)
+- [Prerequisites](#prerequisites)
+- [Installation & Setup](#installation--setup)
+- [Running the Project](#running-the-project)
+- [Environment Variables](#environment-variables)
+- [API Reference](#api-reference)
+- [State Management](#state-management)
+- [Developer](#developer)
 
 ---
 
-## Demo Workflow
+## Overview
 
-1. Open http://localhost:3000 � VexForm landing page
-2. Click **Launch CAD Studio**
-3. Upload the engineering blueprint (JPEG/PNG/PDF)
-4. Click **Analyze Blueprint** � Gemini extracts 28 parameters
-5. Review parameters (AI-extracted fields shown in blue, deviations in red)
-6. Click **Generate 3D Model** � OpenCascade builds the solid
-7. Rotate, zoom the model with mouse
-8. Toggle **Wireframe** to see mesh structure
-9. Enable **Section** and drag the slider to reveal internal bores
-10. Click features in the Feature Tree to highlight geometry
-11. Export as **STEP** for manufacturing
+VexForm is a full-stack intelligent CAD platform targeting mechanical engineers. Upload a blueprint image (JPEG / PNG / PDF), and the system:
+
+1. Sends the image to **Google Gemini 1.5 Flash** (Vision API) which extracts **28 engineering dimensions** from the drawing.
+2. Passes the validated parameters to a **FastAPI + OpenCascade (pythonocc-core)** backend that performs **14 Boolean solid-geometry operations** to construct a real CAD solid.
+3. Streams the tessellated mesh back to a **Next.js 15 + React Three Fiber** interactive 3D viewer with section view, wireframe toggle, measurement tool, feature tree, and one-click STEP / STL / OBJ export.
+
+**Target part:** Lower Valve Body — Injector Assembly (Globe Valve type), Material: HT150
 
 ---
 
-## API Endpoints
+## Tech Stack
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET`  | `/health` | Service health + OCC version |
-| `POST` | `/extract` | Upload blueprint ? extract parameters |
-| `POST` | `/generate` | Parameters ? 3D solid mesh |
-| `GET`  | `/export/step` | Download STEP file |
-| `GET`  | `/export/stl` | Download binary STL |
-| `GET`  | `/export/obj` | Download Wavefront OBJ |
+| Layer | Technology | Version |
+|---|---|---|
+| Frontend framework | Next.js | 16.3.1 |
+| UI language | TypeScript | 5.7.2 |
+| Styling | Tailwind CSS | 3.4.17 |
+| Animation | Framer Motion | 11.15.0 |
+| 3D rendering | Three.js + React Three Fiber | 0.169 / 9.7.0 |
+| 3D helpers | @react-three/drei | 10.7.8 |
+| State management | Zustand | 5.0.3 |
+| Backend framework | FastAPI | 0.115.6 |
+| Backend runtime | Python | 3.11+ |
+| CAD kernel | pythonocc-core (OpenCascade) | 7.9.0 |
+| AI / Vision | Google Gemini 1.5 Flash | — |
+| Validation | Pydantic | 2.9.2 |
+| Monorepo tooling | Turborepo + pnpm workspaces | — |
+| Frontend tests | Vitest + Testing Library | 2.1.8 |
+| Backend tests | pytest + pytest-asyncio | 8.3.4 |
+
+---
+
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Browser                              │
+│                                                             │
+│   ┌────────────┐   ┌──────────────────┐     ┌─────────────┐ │
+│   │  Landing   │   │   CAD Studio     │     │  Inspector  │ │
+│   │  Page      │──▶│  (Next.js 16)    │◀─▶│  Panel      │ │
+│   └────────────┘   │                  │     └─────────────┘ │
+│                    │  • Upload Zone   │                     │
+│                    │  • Param Review  │                     │
+│                    │  • 3D Viewport   │                     │
+│                    │  • Feature Tree  │                     │
+│                    └────────┬─────────┘                     │
+└─────────────────────────────│───────────────────────────────┘
+                              │ HTTP / JSON
+                    ┌─────────▼─────────┐
+                    │   FastAPI Server  │
+                    │   (Python 3.11)   │
+                    │                   │
+                    │  ┌─────────────┐  │
+                    │  │ /extract    │──┼──▶ Google Gemini
+                    │  │ /generate   │  │    Vision API
+                    │  │ /export/*   │  │
+                    │  │ /health     │  │
+                    │  └──────┬──────┘  │
+                    │         │         │
+                    │  ┌──────▼──────┐  │
+                    │  │ OCC Kernel  │  │
+                    │  │ (Boolean    │  │
+                    │  │  14 ops)    │  │
+                    │  └─────────────┘  │
+                    └───────────────────┘
+```
+
+---
+
+## Project Workflow
+
+```
+ ┌──────────────────────────────────────────────────────────────────┐
+ │  1. USER uploads blueprint image (JPEG / PNG / PDF, max 20 MB)   │
+ └───────────────────────────┬──────────────────────────────────────┘
+                             │
+                             ▼
+ ┌──────────────────────────────────────────────────────────────────┐
+ │  2. POST /extract                                                │
+ │     • Image sent to Gemini 1.5 Flash Vision API                  │
+ │     • Structured prompt extracts 28 dimensional parameters       │
+ │     • Falls back to reference values if Gemini is unavailable    │
+ │     • Returns: params dict + source ("gemini" | "fallback")      │
+ └───────────────────────────┬──────────────────────────────────────┘
+                             │
+                             ▼
+ ┌──────────────────────────────────────────────────────────────────┐
+ │  3. PARAM REVIEW — user inspects extracted dimensions            │
+ │     • AI-extracted values highlighted in blue                    │
+ │     • Out-of-tolerance deviations flagged in red                 │
+ │     • User can edit any field before generation                  │
+ └───────────────────────────┬──────────────────────────────────────┘
+                             │
+                             ▼
+ ┌──────────────────────────────────────────────────────────────────┐
+ │  4. POST /generate                                               │
+ │     • Pydantic validates all 28 params + geometry constraints    │
+ │     • OCC Boolean pipeline runs in a thread-pool executor        │
+ │     • 14 operations: fuse flanges → cut bores → cut bolt holes   │
+ │       → apply fillets + chamfers → BRepCheck validation          │
+ │     • Tessellated mesh serialised as float32 vertex/index/normal │
+ │     • Returns: MeshPayload + FeatureTree + elapsed_ms            │
+ └───────────────────────────┬──────────────────────────────────────┘
+                             │
+                             ▼
+ ┌──────────────────────────────────────────────────────────────────┐
+ │  5. 3D VIEWPORT — interactive model in React Three Fiber         │
+ │     • Orbit / pan / zoom with mouse                              │
+ │     • Wireframe toggle (see mesh tessellation)                   │
+ │     • Section view: drag clip plane to reveal internal bores     │
+ │     • Measurement tool: click two points → live distance readout │
+ │     • Scale bar adapts to zoom level                             │
+ │     • Feature tree: click node to highlight geometry region      │
+ └───────────────────────────┬──────────────────────────────────────┘
+                             │
+                             ▼
+ ┌──────────────────────────────────────────────────────────────────┐
+ │  6. EXPORT — one-click download                                  │
+ │     • STEP  — full parametric solid for CNC / CAM software       │
+ │     • STL   — binary mesh for 3D printing / FEA                  │
+ │     • OBJ   — Wavefront format for rendering / game engines      │
+ └──────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## CAD Pipeline (14 Boolean Operations)
 
 ```
-1.  Base Cylinder            BRepPrimAPI_MakeCylinder
-2.  Top Flange Extrusion     BRepAlgoAPI_Fuse
-3.  Bottom Flange Extrusion  BRepAlgoAPI_Fuse
-4.  Side Port Boss           BRepAlgoAPI_Fuse (rotated 135�)
-5.  Upper Bore Cut           BRepAlgoAPI_Cut  �28mm
-6.  Lower Bore Cut           BRepAlgoAPI_Cut  �26mm
-7.  Side Port Bore Cut       BRepAlgoAPI_Cut  �20mm @ 135�
-8.  Top Bolt Holes Cut       BRepAlgoAPI_Cut  4� �7mm
-9.  Top Counterbores Cut     BRepAlgoAPI_Cut  4� �13mm
-10. Bottom Bolt Holes Cut    BRepAlgoAPI_Cut  4� �7mm
-11. Bottom Counterbores Cut  BRepAlgoAPI_Cut  4� �13mm
-12. Side Port Bolt Holes     BRepAlgoAPI_Cut  2� �7mm
-13. Fillets                  BRepFilletAPI_MakeFillet  R1mm
-14. Chamfers                 BRepFilletAPI_MakeChamfer C1.5mm + C1mm
-    ? BRepCheck_Analyzer validation ? mesh tessellation ? Three.js render
+Step  Operation                    OCC API                              Detail
+────  ───────────────────────────  ───────────────────────────────────  ──────────────────────────
+ 1    Base Cylinder                BRepPrimAPI_MakeCylinder             Ø36mm × 118mm body
+ 2    Top Flange Extrusion    ▶︎    BRepAlgoAPI_Fuse                     Ø80mm × 8mm plate
+ 3    Bottom Flange Extrusion ▶︎    BRepAlgoAPI_Fuse                     Ø80mm × 6mm plate
+ 4    Side Port Boss           ▶︎    BRepAlgoAPI_Fuse                     Ø50mm boss @ 135°
+ 5    Upper Bore Cut           ◀    BRepAlgoAPI_Cut                      Ø28mm through bore
+ 6    Lower Bore Cut           ◀    BRepAlgoAPI_Cut                      Ø26mm lower bore
+ 7    Side Port Bore Cut       ◀    BRepAlgoAPI_Cut                      Ø20mm HB bore
+ 8    Top Bolt Holes           ◀    BRepAlgoAPI_Cut                      4× Ø7mm holes
+ 9    Top Counterbores         ◀    BRepAlgoAPI_Cut                      4× Ø13mm counterbores
+10    Bottom Bolt Holes        ◀    BRepAlgoAPI_Cut                      4× Ø7mm holes
+11    Bottom Counterbores      ◀    BRepAlgoAPI_Cut                      4× Ø13mm counterbores
+12    Side Port Bolt Holes     ◀    BRepAlgoAPI_Cut                      2× Ø7mm holes
+13    Fillets                       BRepFilletAPI_MakeFillet             R1mm all transition edges
+14    Chamfers                      BRepFilletAPI_MakeChamfer            C1.5mm + C1mm
+      ──────────────────────────────────────────────────────────────────────────────────────────
+      BRepCheck_Analyzer validation → BRepMesh_IncrementalMesh tessellation → Three.js render
 ```
 
 ---
 
-## Tech Stack
+## Folder Structure
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 15, TypeScript, Tailwind CSS, Framer Motion |
-| 3D Viewer | Three.js, React Three Fiber, @react-three/drei |
-| State | Zustand 5 (5 slices) |
-| Backend | Python 3.11, FastAPI 0.115 |
-| CAD Kernel | pythonocc-core 7.9 (OpenCascade) |
-| AI | Google Gemini 1.5 Flash (Vision) |
-| Monorepo | Turborepo + pnpm workspaces |
+```
+VexForm/
+├── apps/
+│   ├── api/                          # FastAPI backend — CAD geometry engine
+│   │   ├── main.py                   # App factory, CORS middleware, routers
+│   │   ├── requirements.txt          # pip dependencies
+│   │   ├── pyproject.toml            # Project metadata + pytest config
+│   │   ├── .env                      # Local env vars (gitignored)
+│   │   └── app/
+│   │       ├── config.py             # Pydantic settings (reads .env)
+│   │       ├── models/
+│   │       │   ├── params.py         # LowerValveBodyParams (28 fields, Pydantic)
+│   │       │   ├── generate_response.py  # GenerateResponse, FeatureNode
+│   │       │   ├── mesh_payload.py   # MeshPayload, BoundingBox
+│   │       │   └── errors.py         # ValidationError model
+│   │       ├── routers/
+│   │       │   ├── health.py         # GET /health
+│   │       │   ├── extract.py        # POST /extract — Gemini Vision
+│   │       │   ├── generate.py       # POST /generate — OCC pipeline
+│   │       │   └── export.py         # GET /export/{step,stl,obj}
+│   │       ├── services/
+│   │       │   ├── gemini_client.py  # Gemini 1.5 Flash extraction + fallback
+│   │       │   ├── geometry_engine.py # 14-step OCC Boolean pipeline
+│   │       │   ├── mesh_serialiser.py # OCC shape → float32 vertex/index/normal
+│   │       │   ├── validator.py      # Geometry constraint checks
+│   │       │   └── fallback_mesh.py  # Reference mesh when OCC unavailable
+│   │       └── reference/
+│   │           └── lower_valve_body.py  # Hardcoded reference dimensions
+│   │
+│   └── web/                          # Next.js 16 frontend
+│       ├── next.config.ts
+│       ├── package.json
+│       ├── postcss.config.js
+│       ├── tailwind.config  (via postcss)
+│       └── src/
+│           ├── app/
+│           │   ├── layout.tsx        # Root layout, fonts
+│           │   ├── page.tsx          # Landing page (/, marketing)
+│           │   ├── globals.css       # Tailwind base + custom tokens
+│           │   ├── not-found.tsx     # 404 page
+│           │   └── studio/
+│           │       ├── layout.tsx    # Studio shell layout
+│           │       └── page.tsx      # CAD Studio — 3-panel layout
+│           ├── components/
+│           │   ├── landing/          # Marketing landing page sections
+│           │   │   ├── LandingNav.tsx
+│           │   │   ├── HeroSection.tsx
+│           │   │   ├── HowItWorks.tsx
+│           │   │   ├── FeaturesGrid.tsx
+│           │   │   ├── TechnicalShowcase.tsx
+│           │   │   └── CTASection.tsx
+│           │   ├── studio/           # Studio shell components
+│           │   │   ├── Toolbar.tsx
+│           │   │   ├── InspectorPanel.tsx
+│           │   │   ├── PanelDivider.tsx  # Resizable panel drag handle
+│           │   │   └── ToastContainer.tsx
+│           │   ├── upload/           # Blueprint upload flow
+│           │   │   ├── FileUploadZone.tsx
+│           │   │   └── BlueprintPreview.tsx
+│           │   ├── params/           # Parameter review form
+│           │   │   ├── ParamReviewForm.tsx
+│           │   │   ├── ParamField.tsx
+│           │   │   └── ParamStatusIcon.tsx
+│           │   ├── viewport/         # 3D viewer (React Three Fiber)
+│           │   │   ├── Viewport.tsx       # Canvas, camera, lighting
+│           │   │   ├── ModelMesh.tsx      # BufferGeometry from MeshPayload
+│           │   │   ├── SectionViewPlane.tsx  # Clipping plane slider
+│           │   │   ├── MeasurementTool.tsx   # Click-to-measure
+│           │   │   └── ScaleBar.tsx          # Dynamic scale indicator
+│           │   └── feature-tree/     # CAD feature tree
+│           │       ├── FeatureTree.tsx
+│           │       └── FeatureTreeNode.tsx
+│           ├── store/                # Zustand global state (5 slices)
+│           │   ├── index.ts          # Store composition + devtools
+│           │   └── slices/
+│           │       ├── uploadSlice.ts
+│           │       ├── extractionSlice.ts
+│           │       ├── geometrySlice.ts
+│           │       ├── viewportSlice.ts
+│           │       └── uiSlice.ts
+│           └── lib/
+│               └── bufferGeometry.ts # MeshPayload → Three.js BufferGeometry
+│
+├── packages/
+│   └── types/                        # Shared TypeScript interfaces
+│       └── index.ts                  # MeshPayload, FeatureNode, LowerValveBodyParams
+│
+├── .env                              # Root env (gitignored)
+├── .env.example                      # Env template (commit this)
+├── .gitignore
+├── package.json                      # Root pnpm workspace config
+├── pnpm-workspace.yaml               # Workspace declarations
+└── turbo.json                        # Turborepo pipeline config
+```
+
+---
+
+## Prerequisites
+
+| Tool | Version | Notes |
+|---|---|---|
+| Node.js | 20+ | [nodejs.org](https://nodejs.org) |
+| pnpm | 9+ | `npm install -g pnpm` |
+| Python | 3.11+ | [python.org](https://python.org) |
+| Conda | latest | Required for `pythonocc-core` — [Miniconda](https://docs.conda.io/en/latest/miniconda.html) |
+| Git | any | — |
+
+You also need a **Google Gemini API key** (free tier works):
+[https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+
+---
+
+## Installation & Setup
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/narensj20/vexform.git
+cd VexForm
+```
+
+### 2. Install frontend dependencies
+
+```bash
+pnpm install
+```
+
+### 3. Set up environment variables
+
+```bash
+# Windows CMD
+copy .env.example .env
+
+# Windows PowerShell / Git Bash
+cp .env.example .env
+```
+
+Open `.env` and fill in your values:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+SESSION_SECRET=any-random-string
+API_BASE_URL=http://localhost:8001
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8001
+```
+
+Also copy the API-level env:
+
+```bash
+# CMD
+copy .env.example apps\api\.env
+
+# PowerShell
+cp .env.example apps/api/.env
+```
+
+### 4. Set up the Python environment (Conda — recommended)
+
+`pythonocc-core` (OpenCascade Python bindings) is only reliably available via conda-forge.
+
+#### Option A — Create a fresh conda environment (recommended)
+
+```bash
+# Open Anaconda Prompt / Miniconda Prompt and run:
+
+conda create -n vexform python=3.11 -y
+conda activate vexform
+
+conda install -c conda-forge pythonocc-core=7.9.0 -y
+
+cd apps/api
+pip install -r requirements.txt
+```
+
+#### Option B — Add to an existing conda environment
+
+```bash
+conda activate <your-env>
+conda install -c conda-forge pythonocc-core=7.9.0 -y
+
+cd apps/api
+pip install -r requirements.txt
+```
+
+#### Option C — pip only (no OCC, fallback mesh mode)
+
+If you skip the conda step, the API will start in **fallback mesh mode** — it uses hardcoded reference geometry instead of live OpenCascade computation. All other features (Gemini extraction, parameter review, 3D viewer, export) remain fully functional.
+
+```bash
+cd apps/api
+pip install -r requirements.txt
+```
+
+---
+
+## Running the Project
+
+You need **two terminals** running simultaneously.
+
+### Terminal 1 — API Backend
+
+```bash
+# Activate your conda environment first
+conda activate vexform
+
+# Navigate to the API folder
+cd apps/api
+
+# Start the FastAPI server
+uvicorn main:app --reload --host 0.0.0.0 --port 8001
+```
+
+Expected output:
+```
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process
+INFO:     Started server process
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+```
+
+Interactive API docs available at: **http://localhost:8001/docs**
+
+---
+
+### Terminal 2 — Frontend (Next.js)
+
+```bash
+# From the project root
+cd apps/web
+pnpm dev
+```
+
+Expected output:
+```
+  ▲ Next.js 16.3.1
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+  ✓ Ready in 2.1s
+```
+
+Open: **http://localhost:3000**
+
+---
+
+### Full Conda Prompt Workflow (copy-paste ready)
+
+```bash
+#  One-time setup 
+conda create -n vexform python=3.11 -y
+conda activate vexform
+conda install -c conda-forge pythonocc-core=7.9.0 -y
+pip install -r apps/api/requirements.txt
+pnpm install
+
+#  Daily start: Terminal 1 (API) 
+conda activate vexform
+cd apps/api
+uvicorn main:app --reload --host 0.0.0.0 --port 8001
+
+#  Daily start: Terminal 2 (Web) — open a new terminal 
+cd apps/web
+pnpm dev
+```
+
+---
+
+### Using Turborepo (runs both services together)
+
+```bash
+# From project root
+pnpm turbo dev
+```
+
+> Note: Turborepo runs Node-based tasks natively but will not auto-activate your conda environment for the Python server. If you use this shortcut, make sure your conda environment is already active in your shell.
+
+---
+
+## Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `GEMINI_API_KEY` | Yes | Google Gemini Vision API key |
+| `SESSION_SECRET` | No | Session signing secret (default: dev value) |
+| `API_BASE_URL` | No | Internal server-side API URL (default: `http://localhost:8000`) |
+| `NEXT_PUBLIC_API_BASE_URL` | Yes | Public client-side API URL — must match where uvicorn is running |
+
+The API server reads its key from `apps/api/.env` or the root `.env` (both are checked automatically via Pydantic Settings).
+
+---
+
+## API Reference
+
+Base URL: `http://localhost:8001`
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/health` | Service health check + OpenCascade version |
+| `POST` | `/extract` | Upload blueprint image → extract 28 parameters via Gemini |
+| `POST` | `/generate` | Submit parameters → build 3D solid → return mesh + feature tree |
+| `GET` | `/export/step` | Download generated model as STEP (requires OCC) |
+| `GET` | `/export/stl` | Download generated model as binary STL (requires OCC) |
+| `GET` | `/export/obj` | Download generated model as Wavefront OBJ (requires OCC) |
+| `GET` | `/debug/occ` | Check if OpenCascade is available in main + worker threads |
+| `GET` | `/debug/occ-full` | Run a minimal Boolean cut test end-to-end |
+
+### POST /extract
+
+- **Content-Type:** `multipart/form-data`
+- **Field:** `blueprint` — image file (JPEG / PNG / PDF, max 20 MB)
+- **Response:**
+```json
+{
+  "params": { "overall_height": 118.0, "outer_body_diameter": 36.0, ... },
+  "source": "gemini",
+  "elapsed_ms": 1243.5
+}
+```
+
+### POST /generate
+
+- **Content-Type:** `application/json`
+- **Header:** `X-Session-Token: <uuid>` (used to correlate with export calls)
+- **Body:** `LowerValveBodyParams` (28 fields)
+- **Response:**
+```json
+{
+  "mesh": {
+    "vertices": [...],
+    "indices": [...],
+    "normals": [...],
+    "bounding_box": { "min": [x, y, z], "max": [x, y, z] }
+  },
+  "feature_tree": [
+    { "id": "base_cylinder", "label": "Base Cylinder", "status": "success" }
+  ],
+  "elapsed_ms": 4821.0
+}
+```
+
+---
+
+## State Management
+
+The frontend uses **Zustand 5** with a single composed store of 5 slices:
+
+| Slice | Responsibility |
+|---|---|
+| `uploadSlice` | Blueprint file, upload status, preview URL |
+| `extractionSlice` | API call to `/extract`, extracted params, source flag |
+| `geometrySlice` | API call to `/generate`, mesh payload, feature tree, selection |
+| `viewportSlice` | Wireframe toggle, section plane position, measurement state, panel widths |
+| `uiSlice` | Toast notifications, loading overlays |
+
+The store is connected to **Redux DevTools** under the name `VexFormStore` for easy debugging.
+
+---
+
+## Developer
+
+<table>
+<tr>
+<td align="center">
+<b>Naren S J</b><br/>
+ Software Engineer · AI/ML Engineer · Problem Solver<br/><br/>
+<a href="mailto:narensonu1520@gmail.com">narensonu1520@gmail.com</a><br/>
+<a href="tel:+918296833381">+91 82968 33381</a><br/>
+<a href="https://narensj.netlify.app">narensj.netlify.app</a><br/>
+<a href="https://www.linkedin.com/in/narensj20">linkedin.com/in/narensj20</a><br/>
+<a href="https://github.com/narensj20">github.com/narensj20</a>
+</td>
+</tr>
+</table>
+
+---
+
+## Troubleshooting
+
+**`ModuleNotFoundError: No module named 'OCC'`**
+→ `pythonocc-core` is not installed or you are running from the wrong Python environment. Run `conda activate vexform` before starting uvicorn.
+
+**`NEXT_PUBLIC_API_BASE_URL` mismatch**
+→ If uvicorn is on port 8001, set `NEXT_PUBLIC_API_BASE_URL=http://localhost:8001` in both root `.env` and `apps/web/.env.local`.
+
+**Gemini returns `source: "fallback"`**
+→ Check your `GEMINI_API_KEY` is valid and not rate-limited. The API will silently use reference dimensions as a fallback so the rest of the pipeline still works.
+
+**Generation times out (>120s)**
+→ Complex OCC Boolean operations can be slow on first run. Subsequent calls are faster. If it consistently fails, check the `/debug/occ-full` endpoint to confirm OCC is working.
+
+**`conda install pythonocc-core` hangs**
+→ Try adding `--no-deps` and installing dependencies separately, or use `mamba` as a faster conda solver: `conda install -c conda-forge mamba -y && mamba install -c conda-forge pythonocc-core=7.9.0`.
+
+---
+
+<div align="center">
+
+Built with precision by **Naren S J** · [narensj.netlify.app](https://narensj.netlify.app)
+
+</div>
