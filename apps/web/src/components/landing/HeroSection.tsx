@@ -2,7 +2,8 @@
 import Link from 'next/link'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
-import OrbitLoader from './OrbitLoader'
+import StarLoader from './StarLoader'
+// import OrbitLoader from './OrbitLoader'
 
 export default function HeroSection() {
   const ref = useRef<HTMLElement>(null)
@@ -32,7 +33,8 @@ export default function HeroSection() {
         className="absolute inset-0 pointer-events-none flex items-center justify-end pr-[8%]"
         style={{ opacity }}
       >
-        <OrbitLoader />
+        <StarLoader />
+        {/* <OrbitLoader /> */}
       </motion.div>
 
       <motion.div

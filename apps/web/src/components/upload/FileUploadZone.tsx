@@ -1,11 +1,14 @@
 'use client'
 import { useRef, useCallback, useState } from 'react'
 import { useAppStore } from '@/store'
+import DotsLoader from '@/components/ui/DotsLoader'
 
 export default function FileUploadZone() {
-  const { setBlueprint, uploadError, blueprintFile, startExtraction } = useAppStore()
+  const { setBlueprint, uploadError, blueprintFile, startExtraction, extractionStatus } = useAppStore()
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
+
+  const isAnalyzing = extractionStatus === 'loading'
 
   const handleFile = useCallback(
     (file: File) => {
@@ -34,12 +37,11 @@ export default function FileUploadZone() {
   }
 
   const handleAnalyze = () => {
-    if (blueprintFile) startExtraction(blueprintFile)
+    if (blueprintFile && !isAnalyzing) startExtraction(blueprintFile)
   }
 
   return (
     <div className="space-y-3">
-      {/* Drop zone */}
       <div
         className={`
           relative border rounded-lg p-4 text-center cursor-pointer transition-all duration-200
@@ -79,20 +81,33 @@ export default function FileUploadZone() {
         </div>
       </div>
 
-      {/* Error */}
       {uploadError && (
         <p className="text-forge-red text-xs px-1">{uploadError}</p>
       )}
 
-      {/* Analyze button */}
       {blueprintFile && (
         <button
           onClick={handleAnalyze}
+          disabled={isAnalyzing}
           className="w-full py-2 px-4 rounded-lg bg-forge-blue text-white text-sm font-medium
-                     hover:bg-forge-blueLight transition-colors duration-150"
+                     hover:bg-forge-blueLight transition-colors duration-150 disabled:opacity-60
+                     disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          Analyze Blueprint
+          {isAnalyzing ? (
+            <>
+              <span className="w-3.5 h-3.5 border border-white border-t-transparent rounded-full animate-spin shrink-0" />
+              Analyzing…
+            </>
+          ) : (
+            'Analyze Blueprint'
+          )}
         </button>
+      )}
+
+      {isAnalyzing && (
+        <div className="flex justify-center pt-2">
+          <DotsLoader text="Reading…" size={11} />
+        </div>
       )}
     </div>
   )

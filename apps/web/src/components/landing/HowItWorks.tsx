@@ -1,6 +1,7 @@
 'use client'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
+import CubeLoader from './CubeLoader'
 
 const STEPS = [
   {
@@ -124,29 +125,42 @@ export default function HowItWorks() {
         </div>
 
         <div ref={ref} className="relative hidden lg:block">
-          <div className="sticky top-24 h-[600px] overflow-hidden" style={{ border: '1px solid #1a1a1a' }}>
-            <motion.div className="absolute inset-0" style={{ y: imgY }}>
+          <div className="flex flex-col" style={{ border: '1px solid #1a1a1a' }}>
+            <div className="relative overflow-hidden" style={{ height: '520px' }}>
               <div
-                className="absolute inset-[-10%] bg-cover bg-center"
+                className="absolute inset-0 bg-cover bg-center"
                 style={{ backgroundImage: "url('/images/img2.jpg')" }}
               />
               <div
                 className="absolute inset-0"
-                style={{ background: 'rgba(12,12,12,0.6)' }}
+                style={{ background: 'rgba(12,12,12,0.5)' }}
               />
-            </motion.div>
 
-            <div className="relative z-10 h-full flex flex-col justify-end p-8">
-              <div
-                className="inline-block px-3 py-1 mb-4 text-xs uppercase tracking-widest"
-                style={{ background: '#c8b89a', color: '#0c0c0c', letterSpacing: '0.12em' }}
-              >
-                Lower Valve Body
+              <div className="relative z-10 h-full flex flex-col justify-end p-8">
+                <div
+                  className="inline-block px-3 py-1 mb-4 text-xs uppercase tracking-widest"
+                  style={{ background: '#c8b89a', color: '#0c0c0c', letterSpacing: '0.12em' }}
+                >
+                  Lower Valve Body
+                </div>
+                <p className="font-light text-sm" style={{ color: '#b0b0b0' }}>
+                  Injector Assembly, Globe Valve type
+                  <br />
+                  Material: HT150
+                </p>
               </div>
-              <p className="font-light text-sm" style={{ color: '#b0b0b0' }}>
-                Injector Assembly, Globe Valve type
-                <br />
-                Material: HT150
+            </div>
+
+            <div
+              className="flex flex-col items-center justify-center py-16 gap-6"
+              style={{ background: '#080808' }}
+            >
+              <CubeLoader />
+              <p
+                className="text-xs uppercase tracking-widest text-center"
+                style={{ color: '#3a3a3a', letterSpacing: '0.18em' }}
+              >
+                Solid geometry engine
               </p>
             </div>
           </div>

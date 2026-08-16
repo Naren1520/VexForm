@@ -10,11 +10,13 @@ import FileUploadZone from '@/components/upload/FileUploadZone'
 import BlueprintPreview from '@/components/upload/BlueprintPreview'
 import ParamReviewForm from '@/components/params/ParamReviewForm'
 
+import DotsLoader from '@/components/ui/DotsLoader'
+
 const Viewport = dynamic(() => import('@/components/viewport/Viewport'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center w-full h-full bg-[#0d0d14]">
-      <div className="w-8 h-8 border-2 border-forge-blue border-t-transparent rounded-full animate-spin" />
+      <DotsLoader text="Loading…" size={14} />
     </div>
   ),
 })

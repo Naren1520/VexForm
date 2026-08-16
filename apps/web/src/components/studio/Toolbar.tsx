@@ -2,6 +2,7 @@
 import { useAppStore } from '@/store'
 import { downloadBlob } from '@/lib/api'
 import Link from 'next/link'
+import DotsLoader from '@/components/ui/DotsLoader'
 
 export default function Toolbar() {
   const {
@@ -98,8 +99,8 @@ export default function Toolbar() {
           }`}
         >
           {exportingFormat === fmt ? (
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 border border-forge-muted border-t-transparent rounded-full animate-spin" />
+            <span className="flex items-center gap-1.5">
+              <DotsLoader text="" size={10} />
               {fmt.toUpperCase()}
             </span>
           ) : (

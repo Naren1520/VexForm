@@ -7,6 +7,7 @@ import ModelMesh from './ModelMesh'
 import SectionViewPlane from './SectionViewPlane'
 import MeasurementTool from './MeasurementTool'
 import ScaleBar from './ScaleBar'
+import HandLoader from '@/components/studio/HandLoader'
 
 function EmptyState() {
   return (
@@ -82,12 +83,14 @@ export default function Viewport() {
       {meshPayload && <ScaleBar />}
 
       {generationStatus === 'loading' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="glass rounded-xl px-8 py-6 text-center">
-            <div className="w-10 h-10 border-2 border-forge-blue border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-forge-text font-medium">Constructing parametric geometry…</p>
-            <p className="text-forge-muted text-sm mt-1">Applying Boolean operations</p>
-          </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
+          <HandLoader />
+          <p className="text-white/80 text-sm font-light mt-10 tracking-wide">
+            Building solid geometry
+          </p>
+          <p className="text-white/40 text-xs mt-1">
+            Applying Boolean operations — this takes a few seconds
+          </p>
         </div>
       )}
 
