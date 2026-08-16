@@ -2,89 +2,7 @@
 import Link from 'next/link'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
-
-function WireframeObject() {
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      <motion.div
-        animate={{ rotateY: 360, rotateX: 12 }}
-        transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
-        style={{
-          position: 'absolute',
-          right: '6%',
-          top: '50%',
-          translateY: '-50%',
-          width: 340,
-          height: 340,
-          transformStyle: 'preserve-3d',
-          perspective: 800,
-        }}
-      >
-        <svg
-          viewBox="0 0 340 340"
-          fill="none"
-          style={{ width: '100%', height: '100%', opacity: 0.55 }}
-        >
-          {/* outer cube faces */}
-          <polygon points="170,30 310,110 310,230 170,310 30,230 30,110" stroke="#c8b89a" strokeWidth="1.4" fill="none"/>
-          {/* inner hexagon */}
-          <polygon points="170,80 260,130 260,210 170,260 80,210 80,130" stroke="#c8b89a" strokeWidth="1.1" fill="none"/>
-          {/* spokes connecting outer to inner */}
-          <line x1="170" y1="30"  x2="170" y2="80"  stroke="#c8b89a" strokeWidth="0.9"/>
-          <line x1="310" y1="110" x2="260" y2="130" stroke="#c8b89a" strokeWidth="0.9"/>
-          <line x1="310" y1="230" x2="260" y2="210" stroke="#c8b89a" strokeWidth="0.9"/>
-          <line x1="170" y1="310" x2="170" y2="260" stroke="#c8b89a" strokeWidth="0.9"/>
-          <line x1="30"  y1="230" x2="80"  y2="210" stroke="#c8b89a" strokeWidth="0.9"/>
-          <line x1="30"  y1="110" x2="80"  y2="130" stroke="#c8b89a" strokeWidth="0.9"/>
-          {/* cross diagonals on outer */}
-          <line x1="170" y1="30"  x2="310" y2="230" stroke="#c8b89a" strokeWidth="0.55" strokeDasharray="4 8"/>
-          <line x1="310" y1="110" x2="30"  y2="230" stroke="#c8b89a" strokeWidth="0.55" strokeDasharray="4 8"/>
-          <line x1="30"  y1="110" x2="310" y2="230" stroke="#c8b89a" strokeWidth="0.55" strokeDasharray="4 8"/>
-          {/* center bore circle */}
-          <circle cx="170" cy="170" r="38" stroke="#c8b89a" strokeWidth="1.2" fill="none"/>
-          <circle cx="170" cy="170" r="18" stroke="#c8b89a" strokeWidth="0.9" fill="none" strokeDasharray="3 5"/>
-          {/* tick marks on bore */}
-          <line x1="170" y1="132" x2="170" y2="120" stroke="#c8b89a" strokeWidth="0.9"/>
-          <line x1="208" y1="170" x2="220" y2="170" stroke="#c8b89a" strokeWidth="0.9"/>
-          <line x1="170" y1="208" x2="170" y2="220" stroke="#c8b89a" strokeWidth="0.9"/>
-          <line x1="132" y1="170" x2="120" y2="170" stroke="#c8b89a" strokeWidth="0.9"/>
-          {/* dimension annotation lines */}
-          <line x1="30"  y1="40"  x2="310" y2="40"  stroke="#c8b89a" strokeWidth="0.6" strokeDasharray="3 6"/>
-          <line x1="30"  y1="36"  x2="30"  y2="44"  stroke="#c8b89a" strokeWidth="0.9"/>
-          <line x1="310" y1="36"  x2="310" y2="44"  stroke="#c8b89a" strokeWidth="0.9"/>
-          <line x1="320" y1="110" x2="320" y2="230" stroke="#c8b89a" strokeWidth="0.6" strokeDasharray="3 6"/>
-          <line x1="316" y1="110" x2="324" y2="110" stroke="#c8b89a" strokeWidth="0.9"/>
-          <line x1="316" y1="230" x2="324" y2="230" stroke="#c8b89a" strokeWidth="0.9"/>
-          {/* bolt holes on outer ring */}
-          <circle cx="170" cy="58"  r="5" stroke="#c8b89a" strokeWidth="0.9" fill="none"/>
-          <circle cx="280" cy="122" r="5" stroke="#c8b89a" strokeWidth="0.9" fill="none"/>
-          <circle cx="280" cy="218" r="5" stroke="#c8b89a" strokeWidth="0.9" fill="none"/>
-          <circle cx="170" cy="282" r="5" stroke="#c8b89a" strokeWidth="0.9" fill="none"/>
-          <circle cx="60"  cy="218" r="5" stroke="#c8b89a" strokeWidth="0.9" fill="none"/>
-          <circle cx="60"  cy="122" r="5" stroke="#c8b89a" strokeWidth="0.9" fill="none"/>
-        </svg>
-      </motion.div>
-
-      <motion.div
-        animate={{ rotateZ: -360 }}
-        transition={{ duration: 38, repeat: Infinity, ease: 'linear' }}
-        style={{
-          position: 'absolute',
-          right: '6%',
-          top: '50%',
-          translateY: '-50%',
-          width: 340,
-          height: 340,
-        }}
-      >
-        <svg viewBox="0 0 340 340" fill="none" style={{ width: '100%', height: '100%', opacity: 0.22 }}>
-          <circle cx="170" cy="170" r="158" stroke="#c8b89a" strokeWidth="0.5" strokeDasharray="2 12"/>
-          <circle cx="170" cy="170" r="120" stroke="#c8b89a" strokeWidth="0.5" strokeDasharray="2 12"/>
-        </svg>
-      </motion.div>
-    </div>
-  )
-}
+import OrbitLoader from './OrbitLoader'
 
 export default function HeroSection() {
   const ref = useRef<HTMLElement>(null)
@@ -106,12 +24,15 @@ export default function HeroSection() {
         />
         <div
           className="absolute inset-0"
-          style={{ background: 'linear-gradient(to left, rgba(12,12,12,0.72) 0%, rgba(12,12,12,0.3) 45%, transparent 100%)' }}
+          style={{ background: 'linear-gradient(to left, rgba(12,12,12,0.82) 0%, rgba(12,12,12,0.5) 40%, transparent 100%)' }}
         />
       </motion.div>
 
-      <motion.div style={{ opacity }}>
-        <WireframeObject />
+      <motion.div
+        className="absolute inset-0 pointer-events-none flex items-center justify-end pr-[8%]"
+        style={{ opacity }}
+      >
+        <OrbitLoader />
       </motion.div>
 
       <motion.div
@@ -152,7 +73,7 @@ export default function HeroSection() {
           style={{ color: '#c0c0c0', fontSize: '1rem' }}
         >
           Upload any engineering drawing and get a fully parametric, measurable
-          3D model in seconds -ready to section, inspect, and export for manufacturing.
+          3D model in seconds — ready to section, inspect, and export for manufacturing.
         </motion.p>
 
         <motion.div
@@ -178,7 +99,7 @@ export default function HeroSection() {
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#909090' }}
           >
             See How It Works
-            {/* <span className="block w-8 h-px" style={{ background: 'currentColor' }} /> */}
+            <span className="block w-8 h-px" style={{ background: 'currentColor' }} />
           </a>
         </motion.div>
       </motion.div>
