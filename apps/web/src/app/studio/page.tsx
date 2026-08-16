@@ -9,13 +9,12 @@ import ToastContainer from '@/components/studio/ToastContainer'
 import FileUploadZone from '@/components/upload/FileUploadZone'
 import BlueprintPreview from '@/components/upload/BlueprintPreview'
 import ParamReviewForm from '@/components/params/ParamReviewForm'
-
 import DotsLoader from '@/components/ui/DotsLoader'
 
 const Viewport = dynamic(() => import('@/components/viewport/Viewport'), {
   ssr: false,
   loading: () => (
-    <div className="flex items-center justify-center w-full h-full bg-[#0d0d14]">
+    <div className="flex items-center justify-center w-full h-full" style={{ background: '#090909' }}>
       <DotsLoader text="Loading…" size={14} />
     </div>
   ),
@@ -33,22 +32,22 @@ export default function StudioPage() {
   )
 
   return (
-    <div className="studio-layout bg-[#0a0a0f]">
+    <div className="studio-layout" style={{ background: '#090909' }}>
       <Toolbar />
       <div className="flex flex-1 min-h-0">
         <div
-          className="flex flex-col bg-[#0d0d14] border-r border-white/[0.06] min-w-[220px] overflow-hidden"
-          style={{ width: `${leftPanelWidthPct}%` }}
+          className="flex flex-col min-w-[220px] overflow-hidden shrink-0"
+          style={{ width: `${leftPanelWidthPct}%`, background: '#0c0c0c', borderRight: '1px solid #1a1a1a' }}
         >
-          <div className="p-3 border-b border-white/[0.06] shrink-0">
-            <p className="text-[10px] text-forge-muted uppercase tracking-widest mb-2">Blueprint</p>
+          <div className="p-3 shrink-0" style={{ borderBottom: '1px solid #1a1a1a' }}>
+            <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: '#404040' }}>Blueprint</p>
             <FileUploadZone />
           </div>
           <div className="px-3 pt-2 pb-1 shrink-0" style={{ height: '200px' }}>
             <BlueprintPreview />
           </div>
           <div className="flex flex-col flex-1 min-h-0 p-3 overflow-hidden">
-            <p className="text-[10px] text-forge-muted uppercase tracking-widest mb-2 shrink-0">
+            <p className="text-[10px] uppercase tracking-widest mb-2 shrink-0" style={{ color: '#404040' }}>
               Parameters
             </p>
             <div className="flex-1 overflow-y-auto min-h-0">

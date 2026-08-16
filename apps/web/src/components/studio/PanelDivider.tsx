@@ -1,6 +1,5 @@
 'use client'
 import { useRef, useCallback } from 'react'
-import { useAppStore } from '@/store'
 
 interface Props {
   onResize: (deltaX: number) => void
@@ -29,18 +28,13 @@ export default function PanelDivider({ onResize }: Props) {
 
   return (
     <div
-      className="w-1 shrink-0 bg-white/[0.06] hover:bg-forge-blue/40 cursor-col-resize
-                 transition-colors duration-150 relative group"
+      className="w-px shrink-0 cursor-col-resize relative group transition-colors duration-150"
+      style={{ background: '#1a1a1a' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-    >
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-                      flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {[0,1,2].map((i) => (
-          <div key={i} className="w-0.5 h-1 bg-forge-blue rounded-full" />
-        ))}
-      </div>
-    </div>
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#c8b89a44' }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = '#1a1a1a' }}
+    />
   )
 }

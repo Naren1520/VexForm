@@ -10,31 +10,34 @@ export default function FeatureTreeNode({ node, index }: Props) {
   const { selectedFeatureId, selectFeature } = useAppStore()
   const isSelected = selectedFeatureId === node.id
 
+  const statusColor =
+    node.status === 'success' ? '#7ab87a' :
+    node.status === 'failed'  ? '#ff6666' : '#333'
+
   const statusIcon =
-    node.status === 'success' ? (
-      <span className="text-green-400 text-xs">✓</span>
-    ) : node.status === 'failed' ? (
-      <span className="text-forge-red text-xs">✗</span>
-    ) : (
-      <span className="text-forge-muted text-xs">⋯</span>
-    )
+    node.status === 'success' ? '✓' :
+    node.status === 'failed'  ? '✗' : '⋯'
 
   return (
     <button
       onClick={() => selectFeature(node.id)}
-      className={`
-        feature-node w-full flex items-center gap-2 px-3 py-1.5 rounded text-left
-        transition-colors duration-100
-        ${isSelected ? 'selected' : ''}
-      `}
+      className="w-full flex items-center gap-2 px-3 py-1.5 text-left transition-all duration-100"
+      style={{
+        background: isSelected ? '#1a1a1a' : 'transparent',
+        borderLeft: isSelected ? '2px solid #c8b89a' : '2px solid transparent',
+      }}
+      onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = '#111' }}
+      onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
     >
-      <span className="text-forge-muted text-[10px] font-mono w-4 shrink-0 text-right">
+      <span className="text-[10px] font-mono w-4 shrink-0 text-right" style={{ color: '#333' }}>
         {String(index + 1).padStart(2, '0')}
       </span>
-      <span className={`text-xs flex-1 ${isSelected ? 'text-forge-blue' : 'text-forge-text'}`}>
+      <span className="text-[11px] flex-1 truncate" style={{ color: isSelected ? '#f5f0eb' : '#888' }}>
         {node.label}
       </span>
-      {statusIcon}
+      <span className="text-[10px] font-mono shrink-0" style={{ color: statusColor }}>
+        {statusIcon}
+      </span>
     </button>
   )
 }

@@ -9,45 +9,44 @@ export default function InspectorPanel() {
   const totalOps   = featureTree.length
 
   return (
-    <div className="flex flex-col h-full bg-[#0d0d14] border-l border-white/[0.06]">
-      <div className="px-3 py-2.5 border-b border-white/[0.06] shrink-0">
-        <p className="text-forge-text text-xs font-medium uppercase tracking-wider">Inspector</p>
+    <div className="flex flex-col h-full" style={{ background: '#0c0c0c', borderLeft: '1px solid #1a1a1a' }}>
+      <div className="px-4 py-3 shrink-0" style={{ borderBottom: '1px solid #1a1a1a' }}>
+        <p className="text-[10px] uppercase tracking-widest" style={{ color: '#404040' }}>Inspector</p>
       </div>
 
-      <div className="px-3 py-2 border-b border-white/[0.04] shrink-0">
-        <p className="text-[10px] text-forge-muted uppercase tracking-widest mb-1.5">Geometry</p>
-        <div className="space-y-1">
+      <div className="px-4 py-3 shrink-0" style={{ borderBottom: '1px solid #1a1a1a' }}>
+        <p className="text-[10px] uppercase tracking-widest mb-3" style={{ color: '#404040' }}>Geometry</p>
+        <div className="space-y-2">
           <StatusRow label="Solid generated" ok={!!meshPayload} />
-          <StatusRow label="Boolean ops" ok={successOps > 0} value={`${successOps}/${totalOps}`} />
+          <StatusRow label="Boolean ops" ok={successOps > 0} value={totalOps > 0 ? `${successOps}/${totalOps}` : undefined} />
           <StatusRow label="Valid manifold" ok={generationStatus === 'success'} />
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        <div className="px-3 py-2 border-b border-white/[0.04]">
-          <p className="text-[10px] text-forge-muted uppercase tracking-widest">Feature Tree</p>
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="px-4 py-2.5 shrink-0" style={{ borderBottom: '1px solid #1a1a1a' }}>
+          <p className="text-[10px] uppercase tracking-widest" style={{ color: '#404040' }}>Feature Tree</p>
         </div>
-        <FeatureTree />
+        <div className="flex-1 overflow-hidden">
+          <FeatureTree />
+        </div>
       </div>
     </div>
   )
 }
 
-function StatusRow({
-  label,
-  ok,
-  value,
-}: {
-  label: string
-  ok: boolean
-  value?: string
-}) {
+function StatusRow({ label, ok, value }: { label: string; ok: boolean; value?: string }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-forge-muted text-[11px]">{label}</span>
-      <div className="flex items-center gap-1">
-        {value && <span className="text-forge-muted text-[10px] font-mono">{value}</span>}
-        <span className={`text-[11px] ${ok ? 'text-green-400' : 'text-forge-muted'}`}>
+      <span className="text-[11px]" style={{ color: '#555' }}>{label}</span>
+      <div className="flex items-center gap-2">
+        {value && (
+          <span className="text-[10px] font-mono" style={{ color: '#555' }}>{value}</span>
+        )}
+        <span
+          className="text-[10px] font-mono w-4 text-right"
+          style={{ color: ok ? '#7ab87a' : '#333' }}
+        >
           {ok ? '✓' : '—'}
         </span>
       </div>

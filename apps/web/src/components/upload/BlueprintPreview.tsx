@@ -6,9 +6,12 @@ export default function BlueprintPreview() {
 
   if (!blueprintPreviewUrl) {
     return (
-      <div className="flex-1 flex items-center justify-center min-h-[200px] border border-white/5 rounded-lg bg-white/[0.01]">
-        <p className="text-forge-muted text-xs text-center px-4">
-          Blueprint preview will appear here after upload
+      <div
+        className="w-full h-full flex items-center justify-center"
+        style={{ border: '1px solid #1a1a1a', background: '#0a0a0a' }}
+      >
+        <p className="text-[11px] text-center px-4" style={{ color: '#333' }}>
+          Preview appears after upload
         </p>
       </div>
     )
@@ -17,13 +20,16 @@ export default function BlueprintPreview() {
   const isPdf = blueprintFile?.type === 'application/pdf'
 
   return (
-    <div className="flex-1 relative min-h-[200px] overflow-hidden rounded-lg border border-white/10 bg-black/20">
+    <div
+      className="relative w-full h-full overflow-hidden"
+      style={{ border: '1px solid #1a1a1a', background: '#000' }}
+    >
       {isPdf ? (
         <iframe
           src={blueprintPreviewUrl}
           className="w-full h-full"
-          style={{ minHeight: '240px' }}
-          title="Blueprint PDF preview"
+          style={{ minHeight: '196px' }}
+          title="Blueprint PDF"
         />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
@@ -31,11 +37,13 @@ export default function BlueprintPreview() {
           src={blueprintPreviewUrl}
           alt="Engineering blueprint"
           className="w-full h-full object-contain"
-          style={{ minHeight: '240px' }}
+          style={{ minHeight: '196px' }}
         />
       )}
-      {/* Overlay label */}
-      <div className="absolute top-2 left-2 glass rounded px-2 py-0.5 text-xs text-forge-muted">
+      <div
+        className="absolute top-2 left-2 px-2 py-0.5 text-[10px] uppercase tracking-widest"
+        style={{ background: '#111', border: '1px solid #222', color: '#555' }}
+      >
         Blueprint
       </div>
     </div>
