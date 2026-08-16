@@ -1,77 +1,154 @@
+'use client'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import { useRef } from 'react'
+
 const STEPS = [
   {
-    num: '01',
-    title: 'Upload Drawing',
-    desc: 'Upload any engineering blueprint as JPEG, PNG, or PDF. The system accepts standard technical drawings up to 20 MB.',
+    number: '01',
+    title: 'Upload Your Drawing',
+    body: 'Drop in any 2D engineering drawing — scanned blueprint, CAD export, or photograph. The system reads dimensions directly from the image, no manual tracing required.',
   },
   {
-    num: '02',
-    title: 'Extract Parameters',
-    desc: 'Gemini Vision API analyses the drawing and extracts all 28 dimensional parameters including bores, flanges, angles and tolerances.',
+    number: '02',
+    title: 'Automatic Dimension Reading',
+    body: 'AI vision scans every annotation on the drawing and pulls out all critical dimensions — diameters, depths, bolt patterns, angles, tolerances, and surface finishes.',
   },
   {
-    num: '03',
-    title: 'Validate Constraints',
-    desc: 'Every parameter is checked against geometric constraints — bore diameters, counterbore ratios, depth limits — before generation.',
+    number: '03',
+    title: 'Review Before You Build',
+    body: 'Every dimension is laid out for you to verify. Values that differ from standard ranges are flagged. You stay in control — edit anything before the model is generated.',
   },
   {
-    num: '04',
-    title: 'Generate Solid',
-    desc: 'OpenCascade performs 14 Boolean operations: base cylinder → fused flanges → subtracted bores → bolt holes → fillets and chamfers.',
+    number: '04',
+    title: 'Solid 3D Model Generated',
+    body: 'The geometry engine constructs a true solid model from the parameters — flanges, bores, bolt holes, fillets, and chamfers are all built as real physical features, not textures.',
   },
   {
-    num: '05',
-    title: 'Inspect in 3D',
-    desc: 'Orbit, section, measure and export the validated solid. The clipping plane reveals every internal bore and cavity in real geometry.',
+    number: '05',
+    title: 'Inspect, Measure, Export',
+    body: 'Section through the model to verify internal geometry. Measure any distance in the viewer. Export as STEP for your CNC workflow, STL for printing, or OBJ for visualisation.',
   },
 ]
 
 export default function HowItWorks() {
+  const ref = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
+  const imgY = useTransform(scrollYProgress, [0, 1], ['-8%', '8%'])
+
   return (
-    <section id="how-it-works" className="py-24 px-6 bg-engineering-grid">
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-14 text-center">
-          <p className="text-forge-blue text-xs font-medium uppercase tracking-widest mb-3">Process</p>
-          <h2 className="text-3xl md:text-4xl font-bold text-white">How It Works</h2>
-          <p className="text-white/50 mt-3 max-w-xl mx-auto text-sm">
-            A deterministic pipeline from 2D drawing to validated 3D solid — every step is traceable.
-          </p>
+    <section id="process" className="relative overflow-hidden" style={{ background: '#0c0c0c' }}>
+      <div
+        className="w-full py-2"
+        style={{ borderTop: '1px solid #1a1a1a', borderBottom: '1px solid #1a1a1a' }}
+      >
+        <div className="flex items-center overflow-hidden py-3">
+          <motion.div
+            animate={{ x: ['0%', '-50%'] }}
+            transition={{ duration: 28, repeat: Infinity, ease: 'linear' }}
+            className="flex items-center gap-12 whitespace-nowrap"
+          >
+            {Array.from({ length: 8 }).map((_, i) => (
+              <span key={i} className="flex items-center gap-12">
+                <span className="text-xs uppercase tracking-widest" style={{ color: '#555555', letterSpacing: '0.18em' }}>AI Vision</span>
+                <span className="w-1 h-1 rounded-full" style={{ background: '#555555' }} />
+                <span className="text-xs uppercase tracking-widest" style={{ color: '#555555', letterSpacing: '0.18em' }}>Parametric Modeling</span>
+                <span className="w-1 h-1 rounded-full" style={{ background: '#555555' }} />
+                <span className="text-xs uppercase tracking-widest" style={{ color: '#555555', letterSpacing: '0.18em' }}>Solid Geometry</span>
+                <span className="w-1 h-1 rounded-full" style={{ background: '#555555' }} />
+                <span className="text-xs uppercase tracking-widest" style={{ color: '#555555', letterSpacing: '0.18em' }}>Interactive 3D Viewer</span>
+                <span className="w-1 h-1 rounded-full" style={{ background: '#555555' }} />
+              </span>
+            ))}
+          </motion.div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-8 md:px-16 py-32 grid grid-cols-1 lg:grid-cols-2 gap-24">
+        <div>
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-xs tracking-widest uppercase mb-6"
+            style={{ color: '#c8b89a', letterSpacing: '0.18em' }}
+          >
+            The Process
+          </motion.p>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
+            className="font-light leading-tight mb-16"
+            style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)', color: '#f5f0eb', letterSpacing: '-0.02em' }}
+          >
+            From flat drawing
+            <br />
+            to solid geometry.
+          </motion.h2>
+
+          <div className="space-y-0">
+            {STEPS.map((step, i) => (
+              <motion.div
+                key={step.number}
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.6, delay: i * 0.08, ease: [0.25, 0.1, 0.25, 1] }}
+                className="group flex gap-8 py-8 cursor-default"
+                style={{ borderBottom: '1px solid #1a1a1a' }}
+              >
+                <span
+                  className="font-light shrink-0 transition-colors duration-300"
+                  style={{ color: '#585858', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', paddingTop: '2px' }}
+                  onMouseEnter={(e) => { (e.target as HTMLElement).style.color = '#c8b89a' }}
+                  onMouseLeave={(e) => { (e.target as HTMLElement).style.color = '#585858' }}
+                >
+                  {step.number}
+                </span>
+                <div>
+                  <h3
+                    className="font-normal mb-3 transition-colors duration-300"
+                    style={{ color: '#c0c0c0', fontSize: '0.9rem', letterSpacing: '0.01em' }}
+                  >
+                    {step.title}
+                  </h3>
+                  <p className="font-light leading-relaxed" style={{ color: '#787878', fontSize: '0.85rem' }}>
+                    {step.body}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
 
-        <div className="relative">
-          {/* Connecting line */}
-          <div className="hidden md:block absolute top-8 left-0 right-0 h-px bg-white/[0.07]" />
+        <div ref={ref} className="relative hidden lg:block">
+          <div className="sticky top-24 h-[600px] overflow-hidden" style={{ border: '1px solid #1a1a1a' }}>
+            <motion.div className="absolute inset-0" style={{ y: imgY }}>
+              <div
+                className="absolute inset-[-10%] bg-cover bg-center"
+                style={{ backgroundImage: "url('/images/img2.jpg')" }}
+              />
+              <div
+                className="absolute inset-0"
+                style={{ background: 'rgba(12,12,12,0.6)' }}
+              />
+            </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            {STEPS.map((step, i) => (
-              <div key={step.num} className="relative">
-                {/* Step number bubble */}
-                <div className="flex md:justify-center mb-4">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold font-mono relative z-10"
-                    style={{
-                      background: 'rgba(10,10,15,1)',
-                      border: '1px solid rgba(68,136,255,0.35)',
-                      color: '#4488FF',
-                    }}
-                  >
-                    {step.num}
-                  </div>
-                </div>
-                {/* Card */}
-                <div
-                  className="rounded-xl p-4"
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    backdropFilter: 'blur(16px)',
-                    border: '1px solid rgba(255,255,255,0.07)',
-                  }}
-                >
-                  <h3 className="text-white text-sm font-semibold mb-2">{step.title}</h3>
-                  <p className="text-white/50 text-xs leading-relaxed">{step.desc}</p>
-                </div>
+            <div className="relative z-10 h-full flex flex-col justify-end p-8">
+              <div
+                className="inline-block px-3 py-1 mb-4 text-xs uppercase tracking-widest"
+                style={{ background: '#c8b89a', color: '#0c0c0c', letterSpacing: '0.12em' }}
+              >
+                Lower Valve Body
               </div>
-            ))}
+              <p className="font-light text-sm" style={{ color: '#b0b0b0' }}>
+                Injector Assembly, Globe Valve type
+                <br />
+                Material: HT150
+              </p>
+            </div>
           </div>
         </div>
       </div>

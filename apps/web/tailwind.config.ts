@@ -21,31 +21,24 @@ const config: Config = {
           gold:      '#FFD700',
           grey:      '#888888',
         },
+        'vex': {
+          bg:      '#0c0c0c',
+          surface: '#141414',
+          border:  '#1a1a1a',
+          text:    '#f5f0eb',
+          muted:   '#6b6b6b',
+          accent:  '#c8b89a',
+          dim:     '#8a7d6a',
+        },
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         mono: ['var(--font-mono)', 'monospace'],
       },
-      backdropBlur: {
-        xs: '4px',
-        sm: '8px',
-        md: '12px',
-        lg: '20px',
-        xl: '28px',
-      },
-      backgroundImage: {
-        'grid-pattern': `
-          linear-gradient(rgba(68,136,255,0.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(68,136,255,0.03) 1px, transparent 1px)
-        `,
-      },
-      backgroundSize: {
-        'grid': '40px 40px',
-      },
       animation: {
-        'fade-up':    'fadeUp 0.6s ease forwards',
-        'fade-in':    'fadeIn 0.4s ease forwards',
-        'spin-slow':  'spin 8s linear infinite',
+        'fade-up':   'fadeUp 0.6s ease forwards',
+        'fade-in':   'fadeIn 0.4s ease forwards',
+        'spin-slow': 'spin 8s linear infinite',
       },
       keyframes: {
         fadeUp: {

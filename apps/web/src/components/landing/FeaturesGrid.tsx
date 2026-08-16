@@ -1,111 +1,152 @@
 'use client'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import { useRef } from 'react'
 
-const FEATURES = [
+const CAPABILITIES = [
   {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4">
-        <circle cx="10" cy="10" r="8"/>
-        <path d="M10 6v4l3 3"/>
-        <circle cx="10" cy="10" r="2" fill="currentColor" stroke="none"/>
-      </svg>
-    ),
-    title: 'AI Dimension Extraction',
-    desc: 'Gemini Vision reads bores, flanges, angles and tolerances directly from the blueprint image with strict JSON schema validation.',
+    index: '01',
+    title: 'Reads Any Engineering Drawing',
+    detail: 'Upload a scanned blueprint, a photograph of a hand drawing, or a digital PDF. The AI reads every annotated dimension — diameters, depths, bolt circles, port angles, tolerances, and surface notes.',
   },
   {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4">
-        <rect x="2" y="2" width="16" height="16" rx="2"/>
-        <path d="M6 10h8M10 6v8"/>
-        <circle cx="10" cy="10" r="2"/>
-      </svg>
-    ),
-    title: 'Parametric Geometry',
-    desc: 'Every dimension is a named parameter. Change a value, regenerate — the entire solid updates while maintaining all geometric constraints.',
+    index: '02',
+    title: 'Every Dimension is Editable',
+    detail: 'All extracted values are presented for your review before anything is built. Change a bore diameter, adjust a flange thickness, correct a bolt count — the model reflects exactly what you approve.',
   },
   {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4">
-        <circle cx="10" cy="10" r="7"/>
-        <circle cx="10" cy="10" r="3.5"/>
-        <path d="M10 2v2M10 16v2M2 10h2M16 10h2"/>
-      </svg>
-    ),
-    title: 'Boolean Solid Modeling',
-    desc: 'OpenCascade BRepAlgoAPI_Cut performs real material subtraction — bores and cavities exist in the actual B-Rep topology.',
+    index: '03',
+    title: 'True Solid, Not a Shell',
+    detail: 'Internal bores, side passages, stepped cavities, and counterbores are cut through the full solid mass. Section the model at any point and the internal geometry is exactly what the drawing specifies.',
   },
   {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4">
-        <path d="M10 2L10 18"/>
-        <path d="M4 6l6-4 6 4"/>
-        <path d="M4 14l6 4 6-4"/>
-        <rect x="5" y="7" width="10" height="6" rx="1"/>
-      </svg>
-    ),
-    title: 'Internal Cavity Reconstruction',
-    desc: 'Section the model at any axis to reveal stepped bores, side port passages, counterbores — all real geometry, no material faking.',
+    index: '04',
+    title: 'Geometry Verified Before Delivery',
+    detail: 'Every model is checked for physical validity — wall thicknesses, bore clearances, bolt circle geometry, and angular consistency are all verified before the 3D model is shown to you.',
   },
   {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4">
-        <path d="M4 10l4 4 8-8"/>
-        <circle cx="10" cy="10" r="8"/>
-      </svg>
-    ),
-    title: 'Geometric Validation',
-    desc: 'BRepCheck_Analyzer confirms every solid is manifold and valid before it reaches the viewer. Failed operations surface immediately.',
+    index: '05',
+    title: 'Interactive Inspection Tools',
+    detail: 'Drag a section plane through the solid to reveal any internal feature. Click two points to measure a distance. Rotate and zoom freely. Every feature from the drawing is individually selectable.',
   },
   {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4">
-        <path d="M3 10h14"/>
-        <path d="M10 3v14"/>
-        <rect x="6" y="6" width="8" height="8" rx="1"/>
-      </svg>
-    ),
-    title: 'Interactive Section Analysis',
-    desc: 'A draggable clipping plane slices through the solid in real time — proving internal geometry exists and matches blueprint specifications.',
+    index: '06',
+    title: 'Export for Any Downstream Use',
+    detail: 'Download as STEP to open in SolidWorks, Fusion 360, or FreeCAD for further machining work. Export as STL for 3D printing or FEA simulation. OBJ format for rendering and visualisation.',
   },
 ]
 
 export default function FeaturesGrid() {
-  return (
-    <section id="features" className="py-24 px-6 bg-[#0a0a0f]">
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-14 text-center">
-          <p className="text-forge-blue text-xs font-medium uppercase tracking-widest mb-3">Engineering Intelligence</p>
-          <h2 className="text-3xl md:text-4xl font-bold text-white">Built for Accuracy</h2>
-          <p className="text-white/50 mt-3 max-w-xl mx-auto text-sm">
-            Every feature is designed around geometric correctness, not visual approximation.
-          </p>
-        </div>
+  const ref = useRef<HTMLElement>(null)
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
+  const imgY = useTransform(scrollYProgress, [0, 1], ['-8%', '8%'])
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {FEATURES.map((f) => (
-            <div
-              key={f.title}
-              className="group rounded-xl p-5 transition-all duration-200"
-              style={{
-                background: 'rgba(255,255,255,0.025)',
-                backdropFilter: 'blur(16px)',
-                border: '1px solid rgba(255,255,255,0.07)',
-              }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLElement
-                el.style.background = 'rgba(68,136,255,0.06)'
-                el.style.borderColor = 'rgba(68,136,255,0.2)'
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLElement
-                el.style.background = 'rgba(255,255,255,0.025)'
-                el.style.borderColor = 'rgba(255,255,255,0.07)'
-              }}
+  return (
+    <section id="capabilities" ref={ref} className="relative overflow-hidden" style={{ background: '#0c0c0c' }}>
+      <div className="relative overflow-hidden" style={{ height: '400px', borderBottom: '1px solid #1a1a1a' }}>
+        <motion.div className="absolute inset-0" style={{ y: imgY }}>
+          <div
+            className="absolute inset-[-10%] bg-cover bg-center"
+            style={{ backgroundImage: "url('/images/img4.jpg')" }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{ background: 'rgba(12,12,12,0.72)' }}
+          />
+        </motion.div>
+
+        <div className="relative z-10 h-full flex items-end px-8 md:px-16 pb-16 max-w-7xl mx-auto">
+          <div>
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-xs tracking-widest uppercase mb-5"
+              style={{ color: '#c8b89a', letterSpacing: '0.18em' }}
             >
-              <div className="text-forge-blue mb-3">{f.icon}</div>
-              <h3 className="text-white text-sm font-semibold mb-2">{f.title}</h3>
-              <p className="text-white/50 text-xs leading-relaxed">{f.desc}</p>
+              Capabilities
+            </motion.p>
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
+              className="font-light leading-tight"
+              style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)', color: '#f5f0eb', letterSpacing: '-0.02em' }}
+            >
+              Built for
+              <br />
+              engineering accuracy.
+            </motion.h2>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-8 md:px-16 py-0">
+        {CAPABILITIES.map((cap, i) => (
+          <motion.div
+            key={cap.index}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{ duration: 0.55, delay: 0, ease: [0.25, 0.1, 0.25, 1] }}
+            className="group grid grid-cols-1 md:grid-cols-12 gap-6 py-10 transition-all duration-300"
+            style={{ borderBottom: '1px solid #1a1a1a' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#0f0f0f' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+          >
+            <div className="md:col-span-1">
+              <span
+                className="font-light"
+                style={{ color: '#585858', fontSize: '0.7rem', fontFamily: 'var(--font-mono)' }}
+              >
+                {cap.index}
+              </span>
             </div>
+            <div className="md:col-span-4">
+              <h3
+                className="font-normal transition-colors duration-300 group-hover:text-[#f5f0eb]"
+                style={{ color: '#b8b8b8', fontSize: '0.95rem', letterSpacing: '0.01em' }}
+              >
+                {cap.title}
+              </h3>
+            </div>
+            <div className="md:col-span-7">
+              <p className="font-light leading-relaxed" style={{ color: '#808080', fontSize: '0.875rem' }}>
+                {cap.detail}
+              </p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="max-w-7xl mx-auto px-8 md:px-16 py-20">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-0" style={{ border: '1px solid #1a1a1a' }}>
+          {[
+            { value: '28', label: 'Dimensions extracted' },
+            { value: 'STEP', label: 'Manufacturing-ready format' },
+            { value: '<5s', label: 'Model generation time' },
+            { value: '100%', label: 'True solid geometry' },
+          ].map((item, i) => (
+            <motion.div
+              key={item.label}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.08 }}
+              className="px-8 py-10"
+              style={{ borderRight: i < 3 ? '1px solid #1a1a1a' : 'none' }}
+            >
+              <div
+                className="font-light mb-2"
+                style={{ color: '#f5f0eb', fontSize: '1.6rem', letterSpacing: '-0.02em' }}
+              >
+                {item.value}
+              </div>
+              <div className="text-xs uppercase tracking-widest" style={{ color: '#686868', letterSpacing: '0.12em' }}>
+                {item.label}
+              </div>
+            </motion.div>
           ))}
         </div>
       </div>
