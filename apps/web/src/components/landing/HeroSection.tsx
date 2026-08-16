@@ -152,7 +152,7 @@ export default function HeroSection() {
           style={{ color: '#c0c0c0', fontSize: '1rem' }}
         >
           Upload any engineering drawing and get a fully parametric, measurable
-          3D model in seconds — ready to section, inspect, and export for manufacturing.
+          3D model in seconds -ready to section, inspect, and export for manufacturing.
         </motion.p>
 
         <motion.div
@@ -178,7 +178,7 @@ export default function HeroSection() {
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#909090' }}
           >
             See How It Works
-            <span className="block w-8 h-px" style={{ background: 'currentColor' }} />
+            {/* <span className="block w-8 h-px" style={{ background: 'currentColor' }} /> */}
           </a>
         </motion.div>
       </motion.div>

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'CAD Studio — VexForm',
+  title: 'CAD Studio -VexForm',
   description: 'Blueprint to 3D solid modeling workstation',
 }
 

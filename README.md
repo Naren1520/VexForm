@@ -4,7 +4,7 @@
 
 ### From Engineering Drawings to Intelligent 3D Reality
 
-VexForm converts 2D mechanical engineering blueprints into validated, interactive 3D solid models — powered by AI vision and a real CAD kernel.
+VexForm converts 2D mechanical engineering blueprints into validated, interactive 3D solid models -powered by AI vision and a real CAD kernel.
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -43,7 +43,7 @@ VexForm is a full-stack intelligent CAD platform targeting mechanical engineers.
 2. Passes the validated parameters to a **FastAPI + OpenCascade (pythonocc-core)** backend that performs **14 Boolean solid-geometry operations** to construct a real CAD solid.
 3. Streams the tessellated mesh back to a **Next.js 15 + React Three Fiber** interactive 3D viewer with section view, wireframe toggle, measurement tool, feature tree, and one-click STEP / STL / OBJ export.
 
-**Target part:** Lower Valve Body — Injector Assembly (Globe Valve type), Material: HT150
+**Target part:** Lower Valve Body -Injector Assembly (Globe Valve type), Material: HT150
 
 ---
 
@@ -61,9 +61,9 @@ VexForm is a full-stack intelligent CAD platform targeting mechanical engineers.
 | Backend framework | FastAPI | 0.115.6 |
 | Backend runtime | Python | 3.11+ |
 | CAD kernel | pythonocc-core (OpenCascade) | 7.9.0 |
-| AI / Vision | Google Gemini 1.5 Flash | — |
+| AI / Vision | Google Gemini 1.5 Flash | -|
 | Validation | Pydantic | 2.9.2 |
-| Monorepo tooling | Turborepo + pnpm workspaces | — |
+| Monorepo tooling | Turborepo + pnpm workspaces | -|
 | Frontend tests | Vitest + Testing Library | 2.1.8 |
 | Backend tests | pytest + pytest-asyncio | 8.3.4 |
 
@@ -125,7 +125,7 @@ VexForm is a full-stack intelligent CAD platform targeting mechanical engineers.
                              │
                              ▼
  ┌──────────────────────────────────────────────────────────────────┐
- │  3. PARAM REVIEW — user inspects extracted dimensions            │
+ │  3. PARAM REVIEW -user inspects extracted dimensions            │
  │     • AI-extracted values highlighted in blue                    │
  │     • Out-of-tolerance deviations flagged in red                 │
  │     • User can edit any field before generation                  │
@@ -144,7 +144,7 @@ VexForm is a full-stack intelligent CAD platform targeting mechanical engineers.
                              │
                              ▼
  ┌──────────────────────────────────────────────────────────────────┐
- │  5. 3D VIEWPORT — interactive model in React Three Fiber         │
+ │  5. 3D VIEWPORT -interactive model in React Three Fiber         │
  │     • Orbit / pan / zoom with mouse                              │
  │     • Wireframe toggle (see mesh tessellation)                   │
  │     • Section view: drag clip plane to reveal internal bores     │
@@ -155,10 +155,10 @@ VexForm is a full-stack intelligent CAD platform targeting mechanical engineers.
                              │
                              ▼
  ┌──────────────────────────────────────────────────────────────────┐
- │  6. EXPORT — one-click download                                  │
- │     • STEP  — full parametric solid for CNC / CAM software       │
- │     • STL   — binary mesh for 3D printing / FEA                  │
- │     • OBJ   — Wavefront format for rendering / game engines      │
+ │  6. EXPORT -one-click download                                  │
+ │     • STEP  -full parametric solid for CNC / CAM software       │
+ │     • STL   -binary mesh for 3D printing / FEA                  │
+ │     • OBJ   -Wavefront format for rendering / game engines      │
  └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -194,7 +194,7 @@ Step  Operation                    OCC API                              Detail
 ```
 VexForm/
 ├── apps/
-│   ├── api/                          # FastAPI backend — CAD geometry engine
+│   ├── api/                          # FastAPI backend -CAD geometry engine
 │   │   ├── main.py                   # App factory, CORS middleware, routers
 │   │   ├── requirements.txt          # pip dependencies
 │   │   ├── pyproject.toml            # Project metadata + pytest config
@@ -208,8 +208,8 @@ VexForm/
 │   │       │   └── errors.py         # ValidationError model
 │   │       ├── routers/
 │   │       │   ├── health.py         # GET /health
-│   │       │   ├── extract.py        # POST /extract — Gemini Vision
-│   │       │   ├── generate.py       # POST /generate — OCC pipeline
+│   │       │   ├── extract.py        # POST /extract -Gemini Vision
+│   │       │   ├── generate.py       # POST /generate -OCC pipeline
 │   │       │   └── export.py         # GET /export/{step,stl,obj}
 │   │       ├── services/
 │   │       │   ├── gemini_client.py  # Gemini 1.5 Flash extraction + fallback
@@ -233,7 +233,7 @@ VexForm/
 │           │   ├── not-found.tsx     # 404 page
 │           │   └── studio/
 │           │       ├── layout.tsx    # Studio shell layout
-│           │       └── page.tsx      # CAD Studio — 3-panel layout
+│           │       └── page.tsx      # CAD Studio -3-panel layout
 │           ├── components/
 │           │   ├── landing/          # Marketing landing page sections
 │           │   │   ├── LandingNav.tsx
@@ -295,8 +295,8 @@ VexForm/
 | Node.js | 20+ | [nodejs.org](https://nodejs.org) |
 | pnpm | 9+ | `npm install -g pnpm` |
 | Python | 3.11+ | [python.org](https://python.org) |
-| Conda | latest | Required for `pythonocc-core` — [Miniconda](https://docs.conda.io/en/latest/miniconda.html) |
-| Git | any | — |
+| Conda | latest | Required for `pythonocc-core` -[Miniconda](https://docs.conda.io/en/latest/miniconda.html) |
+| Git | any | -|
 
 You also need a **Google Gemini API key** (free tier works):
 [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
@@ -347,11 +347,11 @@ copy .env.example apps\api\.env
 cp .env.example apps/api/.env
 ```
 
-### 4. Set up the Python environment (Conda — recommended)
+### 4. Set up the Python environment (Conda -recommended)
 
 `pythonocc-core` (OpenCascade Python bindings) is only reliably available via conda-forge.
 
-#### Option A — Create a fresh conda environment (recommended)
+#### Option A -Create a fresh conda environment (recommended)
 
 ```bash
 # Open Anaconda Prompt / Miniconda Prompt and run:
@@ -365,7 +365,7 @@ cd apps/api
 pip install -r requirements.txt
 ```
 
-#### Option B — Add to an existing conda environment
+#### Option B -Add to an existing conda environment
 
 ```bash
 conda activate <your-env>
@@ -375,9 +375,9 @@ cd apps/api
 pip install -r requirements.txt
 ```
 
-#### Option C — pip only (no OCC, fallback mesh mode)
+#### Option C -pip only (no OCC, fallback mesh mode)
 
-If you skip the conda step, the API will start in **fallback mesh mode** — it uses hardcoded reference geometry instead of live OpenCascade computation. All other features (Gemini extraction, parameter review, 3D viewer, export) remain fully functional.
+If you skip the conda step, the API will start in **fallback mesh mode** -it uses hardcoded reference geometry instead of live OpenCascade computation. All other features (Gemini extraction, parameter review, 3D viewer, export) remain fully functional.
 
 ```bash
 cd apps/api
@@ -390,7 +390,7 @@ pip install -r requirements.txt
 
 You need **two terminals** running simultaneously.
 
-### Terminal 1 — API Backend
+### Terminal 1 -API Backend
 
 ```bash
 # Activate your conda environment first
@@ -416,7 +416,7 @@ Interactive API docs available at: **http://localhost:8001/docs**
 
 ---
 
-### Terminal 2 — Frontend (Next.js)
+### Terminal 2 -Frontend (Next.js)
 
 ```bash
 # From the project root
@@ -451,7 +451,7 @@ conda activate vexform
 cd apps/api
 uvicorn main:app --reload --host 0.0.0.0 --port 8001
 
-#  Daily start: Terminal 2 (Web) — open a new terminal 
+#  Daily start: Terminal 2 (Web) -open a new terminal 
 cd apps/web
 pnpm dev
 ```
@@ -476,7 +476,7 @@ pnpm turbo dev
 | `GEMINI_API_KEY` | Yes | Google Gemini Vision API key |
 | `SESSION_SECRET` | No | Session signing secret (default: dev value) |
 | `API_BASE_URL` | No | Internal server-side API URL (default: `http://localhost:8000`) |
-| `NEXT_PUBLIC_API_BASE_URL` | Yes | Public client-side API URL — must match where uvicorn is running |
+| `NEXT_PUBLIC_API_BASE_URL` | Yes | Public client-side API URL -must match where uvicorn is running |
 
 The API server reads its key from `apps/api/.env` or the root `.env` (both are checked automatically via Pydantic Settings).
 
@@ -500,7 +500,7 @@ Base URL: `http://localhost:8001`
 ### POST /extract
 
 - **Content-Type:** `multipart/form-data`
-- **Field:** `blueprint` — image file (JPEG / PNG / PDF, max 20 MB)
+- **Field:** `blueprint` -image file (JPEG / PNG / PDF, max 20 MB)
 - **Response:**
 ```json
 {

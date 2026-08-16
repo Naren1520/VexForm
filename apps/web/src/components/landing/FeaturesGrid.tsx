@@ -6,12 +6,12 @@ const CAPABILITIES = [
   {
     index: '01',
     title: 'Reads Any Engineering Drawing',
-    detail: 'Upload a scanned blueprint, a photograph of a hand drawing, or a digital PDF. The AI reads every annotated dimension — diameters, depths, bolt circles, port angles, tolerances, and surface notes.',
+    detail: 'Upload a scanned blueprint, a photograph of a hand drawing, or a digital PDF. The AI reads every annotated dimension -diameters, depths, bolt circles, port angles, tolerances, and surface notes.',
   },
   {
     index: '02',
     title: 'Every Dimension is Editable',
-    detail: 'All extracted values are presented for your review before anything is built. Change a bore diameter, adjust a flange thickness, correct a bolt count — the model reflects exactly what you approve.',
+    detail: 'All extracted values are presented for your review before anything is built. Change a bore diameter, adjust a flange thickness, correct a bolt count -the model reflects exactly what you approve.',
   },
   {
     index: '03',
@@ -21,7 +21,7 @@ const CAPABILITIES = [
   {
     index: '04',
     title: 'Geometry Verified Before Delivery',
-    detail: 'Every model is checked for physical validity — wall thicknesses, bore clearances, bolt circle geometry, and angular consistency are all verified before the 3D model is shown to you.',
+    detail: 'Every model is checked for physical validity -wall thicknesses, bore clearances, bolt circle geometry, and angular consistency are all verified before the 3D model is shown to you.',
   },
   {
     index: '05',

@@ -86,7 +86,7 @@ def build_cylinder_mesh(
     # Extract normals from vertices
     normals = []
     for i in range(0, len(vertices), 3):
-        # Normal is already encoded — recompute from position for simplicity
+        # Normal is already encoded -recompute from position for simplicity
         nx, ny = vertices[i] - cx, vertices[i+1] - cy
         length = math.sqrt(nx*nx + ny*ny) or 1.0
         normals.extend([nx/length, ny/length, 0.0])

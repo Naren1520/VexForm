@@ -6,22 +6,22 @@ const STEPS = [
   {
     number: '01',
     title: 'Upload Your Drawing',
-    body: 'Drop in any 2D engineering drawing — scanned blueprint, CAD export, or photograph. The system reads dimensions directly from the image, no manual tracing required.',
+    body: 'Drop in any 2D engineering drawing -scanned blueprint, CAD export, or photograph. The system reads dimensions directly from the image, no manual tracing required.',
   },
   {
     number: '02',
     title: 'Automatic Dimension Reading',
-    body: 'AI vision scans every annotation on the drawing and pulls out all critical dimensions — diameters, depths, bolt patterns, angles, tolerances, and surface finishes.',
+    body: 'AI vision scans every annotation on the drawing and pulls out all critical dimensions -diameters, depths, bolt patterns, angles, tolerances, and surface finishes.',
   },
   {
     number: '03',
     title: 'Review Before You Build',
-    body: 'Every dimension is laid out for you to verify. Values that differ from standard ranges are flagged. You stay in control — edit anything before the model is generated.',
+    body: 'Every dimension is laid out for you to verify. Values that differ from standard ranges are flagged. You stay in control -edit anything before the model is generated.',
   },
   {
     number: '04',
     title: 'Solid 3D Model Generated',
-    body: 'The geometry engine constructs a true solid model from the parameters — flanges, bores, bolt holes, fillets, and chamfers are all built as real physical features, not textures.',
+    body: 'The geometry engine constructs a true solid model from the parameters -flanges, bores, bolt holes, fillets, and chamfers are all built as real physical features, not textures.',
   },
   {
     number: '05',

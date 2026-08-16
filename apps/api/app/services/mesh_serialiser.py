@@ -84,7 +84,7 @@ def serialise_mesh_to_obj(shape: Any) -> str:
     indices = mesh_data["indices"]
     normals = mesh_data["normals"]
 
-    lines = ["# VexForm — Lower Valve Body", "o LowerValveBody", ""]
+    lines = ["# VexForm -Lower Valve Body", "o LowerValveBody", ""]
     for i in range(0, len(vertices), 3):
         lines.append(f"v {vertices[i]:.6f} {vertices[i+1]:.6f} {vertices[i+2]:.6f}")
     for i in range(0, len(normals), 3):

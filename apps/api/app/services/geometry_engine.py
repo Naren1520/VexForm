@@ -35,7 +35,7 @@ def _assert_done(op, name: str):
     return shape
 
 
-# ── OCC imports (lazy — expensive, only loaded when engine is invoked) ─────────
+# ── OCC imports (lazy -expensive, only loaded when engine is invoked) ─────────
 
 def _occ_imports():
     from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeCylinder

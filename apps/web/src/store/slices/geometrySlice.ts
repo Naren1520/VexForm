@@ -61,7 +61,7 @@ export const createGeometrySlice: StateCreator<
 
       const data = await res.json()
 
-      // Normalise bounding box — backend uses snake_case, frontend expects camelCase
+      // Normalise bounding box -backend uses snake_case, frontend expects camelCase
       const mesh: MeshPayload = {
         vertices: data.mesh.vertices,
         indices: data.mesh.indices,

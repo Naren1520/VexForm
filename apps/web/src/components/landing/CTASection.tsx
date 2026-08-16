@@ -56,7 +56,7 @@ export default function CTASection() {
             <p className="font-light leading-relaxed mb-10" style={{ color: '#909090', fontSize: '0.9rem' }}>
               Upload your drawing, confirm the dimensions the AI reads, and get
               a fully solid 3D model in seconds. Section it, measure it, then
-              export directly into your manufacturing workflow — no manual CAD
+              export directly into your manufacturing workflow -no manual CAD
               modelling required.
             </p>
             <div className="flex items-center gap-6">
@@ -97,7 +97,7 @@ export default function CTASection() {
                 { label: 'Upload', detail: 'Any 2D engineering drawing' },
                 { label: 'Read', detail: 'AI reads all dimensions automatically' },
                 { label: 'Generate', detail: 'Full solid 3D model in seconds' },
-                { label: 'Export', detail: 'STEP, STL, or OBJ — ready for production' },
+                { label: 'Export', detail: 'STEP, STL, or OBJ -ready for production' },
               ].map((item, i) => (
                 <motion.div
                   key={item.label}
@@ -126,7 +126,7 @@ export default function CTASection() {
         style={{ borderTop: '1px solid #1a1a1a' }}
       >
         <span className="text-xs font-light" style={{ color: '#505050' }}>
-          VexForm — 2D Drawing to 3D Model
+          VexForm -2D Drawing to 3D Model
         </span>
         <span className="text-xs font-light" style={{ color: '#505050' }}>
           Built by Naren S J

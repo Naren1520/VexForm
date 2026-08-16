@@ -16,7 +16,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'VexForm — Blueprint to 3D',
+  title: 'VexForm -Blueprint to 3D',
   description:
     'Transform complex engineering blueprints into validated, parametric 3D CAD geometry using AI-assisted dimension extraction and deterministic solid modeling.',
   keywords: ['CAD', '3D modeling', 'engineering', 'AI', 'blueprint', 'OpenCascade'],
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     shortcut: '/images/logo/logo.png',
   },
   openGraph: {
-    title: 'VexForm — Blueprint to 3D',
+    title: 'VexForm -Blueprint to 3D',
     description:
       'Transform complex engineering blueprints into validated, parametric 3D CAD geometry using AI-assisted dimension extraction and deterministic solid modeling.',
     images: [{ url: '/images/logo/logo.png', width: 512, height: 512, alt: 'VexForm' }],
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'VexForm — Blueprint to 3D',
+    title: 'VexForm -Blueprint to 3D',
     description: 'Blueprint to validated 3D CAD geometry using AI + OpenCascade.',
     images: ['/images/logo/logo.png'],
   },

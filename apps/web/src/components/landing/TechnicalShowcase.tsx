@@ -8,7 +8,7 @@ const GEOMETRY_FEATURES = [
   { step: '03', label: 'Bottom Flange', detail: 'Matching bottom flange with independent diameter and depth control' },
   { step: '04', label: 'Side Port Boss', detail: 'Radial boss projected at the exact angle specified in the drawing' },
   { step: '05', label: 'Upper Bore', detail: 'Primary through-bore cut from the top to the correct depth and diameter' },
-  { step: '06', label: 'Lower Bore', detail: 'Stepped inner bore with independent diameter — creates the internal shoulder' },
+  { step: '06', label: 'Lower Bore', detail: 'Stepped inner bore with independent diameter -creates the internal shoulder' },
   { step: '07', label: 'Side Port Bore', detail: 'Lateral bore through the boss and body at the specified angle' },
   { step: '08', label: 'Top Bolt Pattern', detail: 'Bolt holes and counterbores on the top flange, evenly distributed' },
   { step: '09', label: 'Bottom Bolt Pattern', detail: 'Bolt holes and counterbores on the bottom flange at the bolt circle diameter' },
@@ -71,7 +71,7 @@ export default function TechnicalShowcase() {
               className="font-light leading-relaxed max-w-sm"
               style={{ color: '#909090', fontSize: '0.9rem' }}
             >
-              Every feature in the model is a true physical solid — bores cut through
+              Every feature in the model is a true physical solid -bores cut through
               the full depth, flanges fused to the body, chamfers blended at every
               edge. Section it anywhere and the internal geometry is exactly what the
               drawing specifies.
@@ -91,7 +91,7 @@ export default function TechnicalShowcase() {
             className="text-xs tracking-widest uppercase mb-8"
             style={{ color: '#686868', letterSpacing: '0.18em' }}
           >
-            Model Features — Built from Your Drawing
+            Model Features -Built from Your Drawing
           </p>
 
           <div className="space-y-0">

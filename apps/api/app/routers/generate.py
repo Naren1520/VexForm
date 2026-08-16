@@ -18,7 +18,7 @@ _session_store: dict[str, dict] = {}
 
 
 def _run_occ_pipeline(params_dict: dict) -> tuple[dict, list[dict]]:
-    """Run full OCC Boolean pipeline. Raises on any failure — no fallback."""
+    """Run full OCC Boolean pipeline. Raises on any failure -no fallback."""
     from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeCylinder
     from app.models.params import LowerValveBodyParams as P
     from app.services.geometry_engine import build_lower_valve_body

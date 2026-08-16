@@ -1,4 +1,4 @@
-"""GET /health — service health check."""
+"""GET /health -service health check."""
 from fastapi import APIRouter
 from app.models.errors import HealthResponse
 
