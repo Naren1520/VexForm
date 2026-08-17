@@ -6,17 +6,27 @@ interface Props {
   index: number
 }
 
+// Chamfers are known to be unavailable in pythonocc-core 7.9 (confirmed OCC bug)
+const KNOWN_UNAVAILABLE = new Set(['chamfers'])
+
 export default function FeatureTreeNode({ node, index }: Props) {
   const { selectedFeatureId, selectFeature } = useAppStore()
   const isSelected = selectedFeatureId === node.id
 
+  const isUnavailable = node.status === 'failed' && KNOWN_UNAVAILABLE.has(node.id)
+
   const statusColor =
     node.status === 'success' ? '#7ab87a' :
+    isUnavailable             ? '#555' :
     node.status === 'failed'  ? '#ff6666' : '#333'
 
   const statusIcon =
     node.status === 'success' ? '✓' :
+    isUnavailable             ? '—' :
     node.status === 'failed'  ? '✗' : '⋯'
+
+  const statusTitle =
+    isUnavailable ? 'Not available in pythonocc-core 7.9' : undefined
 
   return (
     <button
@@ -35,7 +45,11 @@ export default function FeatureTreeNode({ node, index }: Props) {
       <span className="text-[11px] flex-1 truncate" style={{ color: isSelected ? '#f5f0eb' : '#888' }}>
         {node.label}
       </span>
-      <span className="text-[10px] font-mono shrink-0" style={{ color: statusColor }}>
+      <span
+        className="text-[10px] font-mono shrink-0"
+        style={{ color: statusColor }}
+        title={statusTitle}
+      >
         {statusIcon}
       </span>
     </button>

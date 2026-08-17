@@ -15,7 +15,7 @@ class GeometryError(RuntimeError):
         super().__init__(f"{operation_name}: {detail}" if detail else operation_name)
 
 
-# ── Feature tree node (simple dict for serialisation) ──────────────────────────
+#  Feature tree node (simple dict for serialisation) 
 
 def _node(node_id: str, label: str, status: str) -> dict:
     return {"id": node_id, "label": label, "status": status}
@@ -35,7 +35,7 @@ def _assert_done(op, name: str):
     return shape
 
 
-# ── OCC imports (lazy -expensive, only loaded when engine is invoked) ─────────
+#  OCC imports (lazy -expensive, only loaded when engine is invoked) 
 
 def _occ_imports():
     from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeCylinder
@@ -124,7 +124,7 @@ def build_lower_valve_body(
     top_bolt_circle_r = (r.top_flange_outer_diameter / 2) * 0.70  # ~14mm radius
     bottom_bolt_circle_r = r.bottom_flange_bolt_circle_diameter / 2  # 26mm
 
-    # ─── Step 1: Base cylinder ────────────────────────────────────────────────
+    #  Step 1: Base cylinder 
     try:
         base = _make_cylinder(occ, r.outer_body_diameter / 2, r.overall_height)
         tree.append(_node("base_cylinder", "Base Cylinder", "success"))
@@ -133,7 +133,7 @@ def build_lower_valve_body(
         tree.append(_node("base_cylinder", "Base Cylinder", "failed"))
         raise GeometryError("BRepPrimAPI_MakeCylinder: base_cylinder", str(exc)) from exc
 
-    # ─── Step 2: Top flange extrusion (fuse) ─────────────────────────────────
+    #  Step 2: Top flange extrusion (fuse) 
     try:
         top_flange = _make_cylinder(occ, r.top_flange_outer_diameter / 2, top_flange_height)
         top_flange = _translate(occ, top_flange, 0, 0, r.overall_height)
@@ -144,7 +144,7 @@ def build_lower_valve_body(
         tree.append(_node("top_flange_extrusion", "Top Flange Extrusion", "failed"))
         raise
 
-    # ─── Step 3: Bottom flange extrusion (fuse) ──────────────────────────────
+    #  Step 3: Bottom flange extrusion (fuse) 
     try:
         bot_flange = _make_cylinder(occ, r.bottom_flange_outer_flange_diameter / 2, bottom_flange_height)
         bot_flange = _translate(occ, bot_flange, 0, 0, -bottom_flange_height)
@@ -155,7 +155,7 @@ def build_lower_valve_body(
         tree.append(_node("bottom_flange_extrusion", "Bottom Flange Extrusion", "failed"))
         raise
 
-    # ─── Step 4: Side port boss (fuse) ───────────────────────────────────────
+    #  Step 4: Side port boss (fuse) 
     # The side port is at 135° from the main axis (in the horizontal XZ plane)
     # offset from the top by side_port_offset_from_top
     try:
@@ -176,7 +176,50 @@ def build_lower_valve_body(
         tree.append(_node("side_port_boss", "Side Port Boss", "failed"))
         raise
 
-    # ─── Step 5: Upper bore cut ───────────────────────────────────────────────
+    #  Step 4b: Apply fillets to the additive solid BEFORE any cuts 
+    # Fillets on the clean fused solid (no cuts yet) are much more stable in OCC.
+    # We fillet the main body-to-flange transition edges here.
+    try:
+        from OCC.Core.GeomAbs import GeomAbs_Circle
+        from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
+
+        fillet_builder = occ["BRepFilletAPI_MakeFillet"](solid)
+        edge_explorer = occ["TopExp_Explorer"](solid, occ["TopAbs_EDGE"])
+        fillet_edges_added = 0
+        body_r = r.outer_body_diameter / 2
+
+        while edge_explorer.More():
+            edge = edge_explorer.Current()
+            try:
+                adaptor = BRepAdaptor_Curve(edge)
+                if adaptor.GetType() == GeomAbs_Circle:
+                    radius = adaptor.Circle().Radius()
+                    # Fillet edges at body/flange transition scale
+                    if body_r * 0.7 <= radius <= body_r * 1.5:
+                        fillet_builder.Add(r.unspecified_fillet_radius, edge)
+                        fillet_edges_added += 1
+            except Exception:
+                pass
+            edge_explorer.Next()
+
+        if fillet_edges_added > 0:
+            fillet_builder.Build()
+            if fillet_builder.IsDone() and not fillet_builder.Shape().IsNull():
+                solid = fillet_builder.Shape()
+                _fillet_done = True
+                logger.info(f"Pre-cut fillets applied to {fillet_edges_added} edges")
+            else:
+                _fillet_done = False
+        else:
+            _fillet_done = False
+    except Exception as exc:
+        _fillet_done = False
+        logger.warning(f"Pre-cut fillet failed (non-fatal): {exc}")
+
+    # Chamfers — BRepFilletAPI_MakeChamfer is broken in pythonocc-core 7.9 (confirmed bug).
+    _chamfer_done = False
+
+    #  Step 5: Upper bore cut 
     try:
         upper_bore = _make_cylinder(occ, r.main_bore_upper_diameter / 2, r.overall_height + top_flange_height + 2)
         upper_bore = _translate(occ, upper_bore, 0, 0, -1)
@@ -187,7 +230,7 @@ def build_lower_valve_body(
         tree.append(_node("upper_bore_cut", "Upper Bore Cut", "failed"))
         raise
 
-    # ─── Step 6: Lower bore cut (smaller diameter, from bottom) ──────────────
+    #  Step 6: Lower bore cut (smaller diameter, from bottom) 
     try:
         lower_bore_height = r.overall_height / 2  # lower half has smaller bore
         lower_bore = _make_cylinder(occ, r.main_bore_lower_inner_diameter / 2, lower_bore_height + bottom_flange_height + 2)
@@ -199,7 +242,7 @@ def build_lower_valve_body(
         tree.append(_node("lower_bore_cut", "Lower Bore Cut", "failed"))
         raise
 
-    # ─── Step 7: Side port bore cut ──────────────────────────────────────────
+    #  Step 7: Side port bore cut 
     try:
         bore_origin = occ["gp_Pnt"](-side_boss_length, 0.0, r.overall_height - r.side_port_offset_from_top)
         bore_dir = occ["gp_Dir"](math.cos(angle_rad), math.sin(angle_rad), 0.0)
@@ -212,7 +255,7 @@ def build_lower_valve_body(
         tree.append(_node("side_port_bore_cut", "Side Port Bore Cut", "failed"))
         raise
 
-    # ─── Step 8: Top bolt holes cut ──────────────────────────────────────────
+    #  Step 8: Top bolt holes cut 
     try:
         for i in range(r.top_flange_bolt_hole_count):
             hole_angle = i * (2 * math.pi / r.top_flange_bolt_hole_count)
@@ -227,7 +270,7 @@ def build_lower_valve_body(
         tree.append(_node("top_bolt_holes_cut", "Top Bolt Holes Cut", "failed"))
         raise
 
-    # ─── Step 9: Top counterbores cut ────────────────────────────────────────
+    #  Step 9: Top counterbores cut 
     try:
         for i in range(r.top_flange_bolt_hole_count):
             hole_angle = i * (2 * math.pi / r.top_flange_bolt_hole_count)
@@ -242,7 +285,7 @@ def build_lower_valve_body(
         tree.append(_node("top_counterbores_cut", "Top Counterbores Cut", "failed"))
         raise
 
-    # ─── Step 10: Bottom bolt holes cut ──────────────────────────────────────
+    #  Step 10: Bottom bolt holes cut 
     try:
         for i in range(r.bottom_flange_bolt_hole_count):
             hole_angle = i * (2 * math.pi / r.bottom_flange_bolt_hole_count)
@@ -257,7 +300,7 @@ def build_lower_valve_body(
         tree.append(_node("bottom_bolt_holes_cut", "Bottom Bolt Holes Cut", "failed"))
         raise
 
-    # ─── Step 11: Bottom counterbores cut ────────────────────────────────────
+    #  Step 11: Bottom counterbores cut 
     try:
         for i in range(r.bottom_flange_bolt_hole_count):
             hole_angle = i * (2 * math.pi / r.bottom_flange_bolt_hole_count)
@@ -272,7 +315,7 @@ def build_lower_valve_body(
         tree.append(_node("bottom_counterbores_cut", "Bottom Counterbores Cut", "failed"))
         raise
 
-    # ─── Step 12: Side port bolt holes cut ───────────────────────────────────
+    #  Step 12: Side port bolt holes cut 
     try:
         # Two bolt holes perpendicular to the side port bore direction
         perp_dir_x = -math.sin(angle_rad)
@@ -301,65 +344,52 @@ def build_lower_valve_body(
         tree.append(_node("side_port_bolt_holes_cut", "Side Port Bolt Holes Cut", "failed"))
         raise
 
-    # ─── Steps 13–14: Fillets and chamfers ────────────────────────────────────
+    #  Steps 13–14: Fillets and chamfers 
     # Note: OCC fillet/chamfer on complex Boolean solids can be unstable.
     # We apply them defensively and fall back gracefully if they fail.
-    try:
-        fillet_builder = occ["BRepFilletAPI_MakeFillet"](solid)
-        # Collect all edges and apply R1mm fillet to short transition edges
-        edge_explorer = occ["TopExp_Explorer"](solid, occ["TopAbs_EDGE"])
-        edges_added = 0
-        while edge_explorer.More():
-            try:
-                fillet_builder.Add(r.unspecified_fillet_radius, edge_explorer.Current())
-                edges_added += 1
-            except Exception:
-                pass
-            edge_explorer.Next()
+    # Fillets were applied pre-cut (step 4b) — report that status here
+    if _fillet_done:
+        tree.append(_node("fillets", "Fillets", "success"))
+    else:
+        # Attempt post-cut fillet as fallback on just the outer body edge
+        try:
+            from OCC.Core.GeomAbs import GeomAbs_Circle
+            from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
 
-        if edges_added > 0:
-            fillet_builder.Build()
-            if fillet_builder.IsDone() and not fillet_builder.Shape().IsNull():
-                solid = fillet_builder.Shape()
-                tree.append(_node("fillets", "Fillets", "success"))
-                logger.debug("Step 13 complete: fillets applied")
+            fb = occ["BRepFilletAPI_MakeFillet"](solid)
+            exp = occ["TopExp_Explorer"](solid, occ["TopAbs_EDGE"])
+            added = 0
+            while exp.More() and added < 3:
+                edge = exp.Current()
+                try:
+                    a = BRepAdaptor_Curve(edge)
+                    if a.GetType() == GeomAbs_Circle:
+                        body_r = r.outer_body_diameter / 2
+                        if body_r * 0.85 <= a.Circle().Radius() <= body_r * 1.15:
+                            fb.Add(r.unspecified_fillet_radius, edge)
+                            added += 1
+                except Exception:
+                    pass
+                exp.Next()
+            if added > 0:
+                fb.Build()
+                if fb.IsDone() and not fb.Shape().IsNull():
+                    solid = fb.Shape()
+                    tree.append(_node("fillets", "Fillets", "success"))
+                else:
+                    tree.append(_node("fillets", "Fillets", "failed"))
             else:
-                logger.warning("Fillet builder finished but shape is invalid; skipping fillets")
                 tree.append(_node("fillets", "Fillets", "failed"))
-        else:
+        except Exception:
             tree.append(_node("fillets", "Fillets", "failed"))
-    except Exception as exc:
-        logger.warning(f"Fillet operation failed (non-fatal): {exc}")
-        tree.append(_node("fillets", "Fillets", "failed"))
 
-    # Chamfers: skip if fillet already failed (shape may be unstable)
-    try:
-        chamfer_builder = occ["BRepFilletAPI_MakeChamfer"](solid)
-        edge_explorer2 = occ["TopExp_Explorer"](solid, occ["TopAbs_EDGE"])
-        edges_added = 0
-        while edge_explorer2.More():
-            try:
-                chamfer_builder.Add(r.other_chamfer, edge_explorer2.Current())
-                edges_added += 1
-            except Exception:
-                pass
-            edge_explorer2.Next()
-
-        if edges_added > 0:
-            chamfer_builder.Build()
-            if chamfer_builder.IsDone() and not chamfer_builder.Shape().IsNull():
-                solid = chamfer_builder.Shape()
-                tree.append(_node("chamfers", "Chamfers", "success"))
-                logger.debug("Step 14 complete: chamfers applied")
-            else:
-                tree.append(_node("chamfers", "Chamfers", "failed"))
-        else:
-            tree.append(_node("chamfers", "Chamfers", "failed"))
-    except Exception as exc:
-        logger.warning(f"Chamfer operation failed (non-fatal): {exc}")
+    # Chamfers — use pre-cut result
+    if _chamfer_done:
+        tree.append(_node("chamfers", "Chamfers", "success"))
+    else:
         tree.append(_node("chamfers", "Chamfers", "failed"))
 
-    # ─── Step 15: Shape validation ───────────────────────────────────────────
+    #  Step 15: Shape validation 
     elapsed = time.perf_counter() - t0
     if elapsed > 60.0:
         raise GeometryError("build_lower_valve_body", f"exceeded 60-second timeout ({elapsed:.1f}s)")

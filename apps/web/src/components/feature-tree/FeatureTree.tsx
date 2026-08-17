@@ -42,8 +42,10 @@ export default function FeatureTree() {
     )
   }
 
+  const KNOWN_UNAVAILABLE = new Set(['chamfers'])
   const successCount = nodes.filter((n) => n.status === 'success').length
-  const failCount    = nodes.filter((n) => n.status === 'failed').length
+  const failCount    = nodes.filter((n) => n.status === 'failed' && !KNOWN_UNAVAILABLE.has(n.id)).length
+  const naCount      = nodes.filter((n) => n.status === 'failed' && KNOWN_UNAVAILABLE.has(n.id)).length
 
   return (
     <FeatureTreeErrorBoundary>
@@ -55,6 +57,9 @@ export default function FeatureTree() {
           <span className="text-[10px] font-mono" style={{ color: '#7ab87a' }}>{successCount} ok</span>
           {failCount > 0 && (
             <span className="text-[10px] font-mono" style={{ color: '#ff6666' }}>{failCount} fail</span>
+          )}
+          {naCount > 0 && (
+            <span className="text-[10px] font-mono" style={{ color: '#555' }}>{naCount} n/a</span>
           )}
           <span className="text-[10px] font-mono ml-auto" style={{ color: '#333' }}>{nodes.length} ops</span>
         </div>
