@@ -2,15 +2,19 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
 
 export default function LandingNav() {
   const [scrolled, setScrolled] = useState(false)
+  const { data: session } = useSession()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  const studioHref = session ? '/studio' : '/auth?next=/studio'
 
   return (
     <nav
@@ -25,26 +29,11 @@ export default function LandingNav() {
         <Link href="/" className="flex items-center gap-3 group">
           <div
             className="relative shrink-0 overflow-hidden rounded-full"
-            style={{
-              width: 34,
-              height: 34,
-              outline: '1.5px solid #c8b89a',
-              outlineOffset: '2px',
-            }}
+            style={{ width: 34, height: 34, outline: '1.5px solid #c8b89a', outlineOffset: '2px' }}
           >
-            <Image
-              src="/images/logo/logo.png"
-              alt="VexForm"
-              fill
-              sizes="34px"
-              className="object-cover rounded-full"
-              priority
-            />
+            <Image src="/images/logo/logo.png" alt="VexForm" fill sizes="34px" className="object-cover rounded-full" priority />
           </div>
-          <span
-            className="font-semibold tracking-tight text-sm transition-colors duration-200"
-            style={{ color: '#f5f0eb', letterSpacing: '0.04em' }}
-          >
+          <span className="font-semibold tracking-tight text-sm transition-colors duration-200" style={{ color: '#f5f0eb', letterSpacing: '0.04em' }}>
             VEXFORM
           </span>
         </Link>
@@ -69,23 +58,13 @@ export default function LandingNav() {
         </div>
 
         <Link
-          href="/studio"
+          href={studioHref}
           className="text-xs tracking-widest uppercase transition-all duration-200 px-5 py-2.5"
-          style={{
-            color: '#0c0c0c',
-            background: '#f5f0eb',
-            letterSpacing: '0.1em',
-          }}
-          onMouseEnter={(e) => {
-            const el = e.currentTarget as HTMLElement
-            el.style.background = '#c8b89a'
-          }}
-          onMouseLeave={(e) => {
-            const el = e.currentTarget as HTMLElement
-            el.style.background = '#f5f0eb'
-          }}
+          style={{ color: '#0c0c0c', background: '#f5f0eb', letterSpacing: '0.1em' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#c8b89a' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = '#f5f0eb' }}
         >
-          Open Studio
+          {session ? 'Open Studio' : 'Sign In'}
         </Link>
       </div>
     </nav>

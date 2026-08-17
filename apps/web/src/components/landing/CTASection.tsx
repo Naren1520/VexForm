@@ -2,9 +2,12 @@
 import Link from 'next/link'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
+import { useSession } from 'next-auth/react'
 
 export default function CTASection() {
   const ref = useRef<HTMLElement>(null)
+  const { data: session } = useSession()
+  const studioHref = session ? '/studio' : '/auth?next=/studio'
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
   const imgY = useTransform(scrollYProgress, [0, 1], ['-8%', '8%'])
 
@@ -61,7 +64,7 @@ export default function CTASection() {
             </p>
             <div className="flex items-center gap-6">
               <Link
-                href="/studio"
+                href={studioHref}
                 className="text-xs tracking-widest uppercase px-8 py-4 transition-all duration-300"
                 style={{
                   background: '#f5f0eb',

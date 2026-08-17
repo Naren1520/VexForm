@@ -2,11 +2,14 @@
 import Link from 'next/link'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
+import { useSession } from 'next-auth/react'
 import StarLoader from './StarLoader'
 // import OrbitLoader from './OrbitLoader'
 
 export default function HeroSection() {
   const ref = useRef<HTMLElement>(null)
+  const { data: session } = useSession()
+  const studioHref = session ? '/studio' : '/auth?next=/studio'
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })
   const imgY = useTransform(scrollYProgress, [0, 1], ['0%', '20%'])
   const textY = useTransform(scrollYProgress, [0, 1], ['0%', '12%'])
@@ -85,7 +88,7 @@ export default function HeroSection() {
           className="flex items-center gap-6"
         >
           <Link
-            href="/studio"
+            href={studioHref}
             className="text-xs tracking-widest uppercase px-8 py-4 transition-all duration-300"
             style={{ background: '#f5f0eb', color: '#0c0c0c', letterSpacing: '0.12em' }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#c8b89a' }}

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
+import SessionProvider from '@/components/providers/SessionProvider'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -49,7 +50,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           content="dFsm2JtlLitYwJgDDZCH4_BvJ6mPSUKiCjAusz5_DMw"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <SessionProvider>{children}</SessionProvider>
+      </body>
     </html>
   )
 }
