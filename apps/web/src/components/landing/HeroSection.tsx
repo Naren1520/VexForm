@@ -101,7 +101,7 @@ export default function HeroSection() {
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#909090' }}
           >
             See How It Works
-            <span className="block w-8 h-px" style={{ background: 'currentColor' }} />
+            {/* <span className="block w-8 h-px" style={{ background: 'currentColor' }} /> */}
           </a>
         </motion.div>
       </motion.div>
