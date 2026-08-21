@@ -78,13 +78,13 @@ def serialise_mesh(shape: Any) -> dict:
     return {"vertices": vertices, "indices": indices, "normals": normals, "bounding_box": bounding_box}
 
 
-def serialise_mesh_to_obj(shape: Any) -> str:
+def serialise_mesh_to_obj(shape: Any, object_name: str = "VexFormModel") -> str:
     mesh_data = serialise_mesh(shape)
     vertices = mesh_data["vertices"]
     indices = mesh_data["indices"]
     normals = mesh_data["normals"]
 
-    lines = ["# VexForm -Lower Valve Body", "o LowerValveBody", ""]
+    lines = [f"# VexForm — {object_name}", f"o {object_name}", ""]
     for i in range(0, len(vertices), 3):
         lines.append(f"v {vertices[i]:.6f} {vertices[i+1]:.6f} {vertices[i+2]:.6f}")
     for i in range(0, len(normals), 3):

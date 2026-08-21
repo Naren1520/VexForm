@@ -10,7 +10,7 @@ VexForm converts 2D mechanical engineering blueprints into validated, interactiv
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org)
 [![OpenCascade](https://img.shields.io/badge/OpenCascade-7.9-blue)](https://dev.opencascade.org)
-[![Gemini](https://img.shields.io/badge/Gemini-1.5_Flash-8B5CF6?logo=google&logoColor=white)](https://deepmind.google/technologies/gemini)
+[![Gemini](https://img.shields.io/badge/Gemini-3.7_Flash-8B5CF6?logo=google&logoColor=white)](https://deepmind.google/technologies/gemini)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 </div>
@@ -39,11 +39,32 @@ VexForm converts 2D mechanical engineering blueprints into validated, interactiv
 
 VexForm is a full-stack intelligent CAD platform targeting mechanical engineers. Upload a blueprint image (JPEG / PNG / PDF), and the system:
 
-1. Sends the image to **Google Gemini 1.5 Flash** (Vision API) which extracts **28 engineering dimensions** from the drawing.
-2. Passes the validated parameters to a **FastAPI + OpenCascade (pythonocc-core)** backend that performs **14 Boolean solid-geometry operations** to construct a real CAD solid.
-3. Streams the tessellated mesh back to a **Next.js 15 + React Three Fiber** interactive 3D viewer with section view, wireframe toggle, measurement tool, feature tree, and one-click STEP / STL / OBJ export.
+1. Sends the drawing to **Gemini 3.7 Flash** for multi-view engineering interpretation.
+2. Parses the response into a strict, structured **CAD-IR feature graph** with dimensions, dependencies, confidence, and evidence.
+3. Validates the graph, resolves topology references, and executes trusted features through **FastAPI + OpenCascade 7.9**.
+4. Streams the validated B-Rep tessellation to the interactive Three.js viewer with review, section, measurement, feature-tree, and STEP / STL / OBJ export support.
 
 **Target part:** Lower Valve Body -Injector Assembly (Globe Valve type), Material: HT150
+
+### Generic CAD-IR architecture
+
+The generic path is now based on **CAD-IR**, a validated Pydantic feature graph. Gemini interprets views, dimensions, and engineering features into structured JSON; it never produces executable Python. A trusted feature registry executes the validated graph through OpenCascade, then produces the authoritative B-Rep for mesh and STEP/STL/OBJ export. The legacy Lower Valve Body parameter path remains available for regression compatibility while parts are migrated.
+
+CAD-IR supports extensible primitive, Boolean, hole/pattern, transform, and finishing features. An optional `EngineeringKnowledgeProvider` interface is available for future drawing-standard and GD&T retrieval.
+
+Increment 3 executes sketches (line, polyline, circle, arc, and ellipse), extrude, revolve, sweep, loft, rib, primitives, Booleans, holes, patterns, fillets, chamfers, shell, and draft through trusted OCC handlers. Stable feature-relative topology metadata is used for face and edge references; ambiguous or missing references return structured errors.
+
+The end-to-end reconstruction path accepts multiple drawing views in one CAD-IR document, retains confidence and evidence fields for uncertain dimensions/features, validates cross-feature constraints before OCC, and records feature-level timing and topology lineage where available. All blueprint uploads now use this generic CAD-IR path; the older named-shape builders remain only as compatibility code for legacy API clients. It is designed for progressively broader mechanical drawing support, not universal blueprint reconstruction.
+
+### Blueprint Understanding Pipeline
+
+Local or uploaded drawings can be interpreted through a provider boundary: `RealGeminiProvider` uses Gemini Vision and `MockGeminiProvider` reads deterministic local fixtures for offline development and CI. Both produce the same strict `CADModel` contract. The review flow is `EXTRACTING -> EXTRACTED -> NEEDS_REVIEW -> VALIDATED -> GENERATING -> GENERATED`; low confidence and semantic conflicts remain reviewable instead of being silently repaired.
+
+Models can be persisted behind the filesystem-backed `ModelStore`, which stores the blueprint metadata, CAD-IR, validation state, metrics, and immutable revision records. Each modification or rollback creates a new revision while CAD-IR remains the source of truth. A measured benchmark helper records validation, OCC success, feature counts, confidence, B-Rep metrics, and elapsed time for fixture comparisons.
+
+### Topology Reference System
+
+Each generated OCC feature receives topology metadata for its faces, edges, and vertices. References are feature-relative and paired with geometric signatures such as surface or curve type, area or length, centroid, radius, normal, and axis. Downstream operations resolve these signatures with tolerances; raw OCC enumeration indices are never public identifiers. Boolean and finishing results receive newly extracted metadata, and ambiguous or missing matches return structured CAD errors instead of selecting arbitrary geometry.
 
 ---
 
@@ -61,7 +82,7 @@ VexForm is a full-stack intelligent CAD platform targeting mechanical engineers.
 | Backend framework | FastAPI | 0.115.6 |
 | Backend runtime | Python | 3.11+ |
 | CAD kernel | pythonocc-core (OpenCascade) | 7.9.0 |
-| AI / Vision | Google Gemini 1.5 Flash | -|
+| AI / Vision | Google Gemini 3.7 Flash | Configurable with `GEMINI_MODEL` |
 | Validation | Pydantic | 2.9.2 |
 | Monorepo tooling | Turborepo + pnpm workspaces | -|
 | Frontend tests | Vitest + Testing Library | 2.1.8 |
@@ -91,16 +112,16 @@ VexForm is a full-stack intelligent CAD platform targeting mechanical engineers.
                     │   (Python 3.11)   │
                     │                   │
                     │  ┌─────────────┐  │
-                    │  │ /extract    │──┼──▶ Google Gemini
+                    │  │ /extract    │──┼──▶ Gemini 3.7 Flash
                     │  │ /generate   │  │    Vision API
                     │  │ /export/*   │  │
                     │  │ /health     │  │
                     │  └──────┬──────┘  │
                     │         │         │
                     │  ┌──────▼──────┐  │
-                    │  │ OCC Kernel  │  │
-                    │  │ (Boolean    │  │
-                    │  │  14 ops)    │  │
+                    │  │ CAD-IR/OCC  │  │
+                    │  │ trusted     │  │
+                    │  │ feature graph│  │
                     │  └─────────────┘  │
                     └───────────────────┘
 ```
@@ -117,29 +138,27 @@ VexForm is a full-stack intelligent CAD platform targeting mechanical engineers.
                              ▼
  ┌──────────────────────────────────────────────────────────────────┐
  │  2. POST /extract                                                │
- │     • Image sent to Gemini 1.5 Flash Vision API                  │
- │     • Structured prompt extracts 28 dimensional parameters       │
- │     • Falls back to reference values if Gemini is unavailable    │
- │     • Returns: params dict + source ("gemini" | "fallback")      │
+ │     • Image sent to Gemini 3.7 Flash Vision API                  │
+ │     • All drawing views are unified into one CAD-IR graph         │
+ │     • Dimensions include confidence, source, and uncertainty      │
+ │     • Returns: CAD-IR + review state + validation context        │
  └───────────────────────────┬──────────────────────────────────────┘
                              │
                              ▼
  ┌──────────────────────────────────────────────────────────────────┐
- │  3. PARAM REVIEW -user inspects extracted dimensions            │
- │     • AI-extracted values highlighted in blue                    │
- │     • Out-of-tolerance deviations flagged in red                 │
- │     • User can edit any field before generation                  │
+ │  3. HUMAN REVIEW -user checks the interpretation                 │
+ │     • Low-confidence features and dimensions require review       │
+ │     • Evidence and topology metadata remain available             │
+ │     • User can edit or disable features before generation         │
  └───────────────────────────┬──────────────────────────────────────┘
                              │
                              ▼
  ┌──────────────────────────────────────────────────────────────────┐
- │  4. POST /generate                                               │
- │     • Pydantic validates all 28 params + geometry constraints    │
- │     • OCC Boolean pipeline runs in a thread-pool executor        │
- │     • 14 operations: fuse flanges → cut bores → cut bolt holes   │
- │       → apply fillets + chamfers → BRepCheck validation          │
- │     • Tessellated mesh serialised as float32 vertex/index/normal │
- │     • Returns: MeshPayload + FeatureTree + elapsed_ms            │
+ │  4. POST /validate then /generate                                 │
+ │     • CAD-IR schema and semantic constraints are checked          │
+ │     • Dependency graph resolves in trusted OCC executor           │
+ │     • BRepCheck validates the resulting solid                    │
+ │     • Returns: mesh + dynamic feature tree + metrics              │
  └───────────────────────────┬──────────────────────────────────────┘
                              │
                              ▼
@@ -164,27 +183,18 @@ VexForm is a full-stack intelligent CAD platform targeting mechanical engineers.
 
 ---
 
-## CAD Pipeline (14 Boolean Operations)
+## Generic CAD Pipeline
 
 ```
-Step  Operation                    OCC API                              Detail
-────  ───────────────────────────  ───────────────────────────────────  ──────────────────────────
- 1    Base Cylinder                BRepPrimAPI_MakeCylinder             Ø36mm × 118mm body
- 2    Top Flange Extrusion    ▶︎    BRepAlgoAPI_Fuse                     Ø80mm × 8mm plate
- 3    Bottom Flange Extrusion ▶︎    BRepAlgoAPI_Fuse                     Ø80mm × 6mm plate
- 4    Side Port Boss           ▶︎    BRepAlgoAPI_Fuse                     Ø50mm boss @ 135°
- 5    Upper Bore Cut           ◀    BRepAlgoAPI_Cut                      Ø28mm through bore
- 6    Lower Bore Cut           ◀    BRepAlgoAPI_Cut                      Ø26mm lower bore
- 7    Side Port Bore Cut       ◀    BRepAlgoAPI_Cut                      Ø20mm HB bore
- 8    Top Bolt Holes           ◀    BRepAlgoAPI_Cut                      4× Ø7mm holes
- 9    Top Counterbores         ◀    BRepAlgoAPI_Cut                      4× Ø13mm counterbores
-10    Bottom Bolt Holes        ◀    BRepAlgoAPI_Cut                      4× Ø7mm holes
-11    Bottom Counterbores      ◀    BRepAlgoAPI_Cut                      4× Ø13mm counterbores
-12    Side Port Bolt Holes     ◀    BRepAlgoAPI_Cut                      2× Ø7mm holes
-13    Fillets                       BRepFilletAPI_MakeFillet             R1mm all transition edges
-14    Chamfers                      BRepFilletAPI_MakeChamfer            C1.5mm + C1mm
-      ──────────────────────────────────────────────────────────────────────────────────────────
-      BRepCheck_Analyzer validation → BRepMesh_IncrementalMesh tessellation → Three.js render
+Blueprint → Gemini 3.7 Flash → CAD-IR → Pydantic validation
+     → semantic review → dependency graph → trusted feature registry
+     → OpenCascade 7.9 → topology lineage → BRepCheck
+     → tessellation → Three.js / STEP / STL / OBJ
+
+Supported generic features include primitives, sketches, extrude, revolve, sweep,
+loft, Booleans, holes, patterns, fillets, chamfers, shell, draft, rib, and transforms.
+The original valve implementation remains only as a legacy compatibility path and is
+not selected by the normal blueprint upload flow.
 ```
 
 ---
@@ -212,7 +222,11 @@ VexForm/
 │   │       │   ├── generate.py       # POST /generate -OCC pipeline
 │   │       │   └── export.py         # GET /export/{step,stl,obj}
 │   │       ├── services/
-│   │       │   ├── gemini_client.py  # Gemini 1.5 Flash extraction + fallback
+│   │       │   ├── gemini_client.py  # Compatibility extraction client
+│   │       │   ├── blueprint_to_program.py # Gemini 3.7 Flash → CAD-IR
+│   │       │   ├── extraction_provider.py # Real/mock provider boundary
+│   │       │   ├── confidence.py       # Deterministic confidence scoring
+│   │       │   ├── model_store.py       # Filesystem model revisions
 │   │       │   ├── geometry_engine.py # 14-step OCC Boolean pipeline
 │   │       │   ├── mesh_serialiser.py # OCC shape → float32 vertex/index/normal
 │   │       │   ├── validator.py      # Geometry constraint checks
@@ -332,6 +346,7 @@ Open `.env` and fill in your values:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-3.7-flash
 SESSION_SECRET=any-random-string
 API_BASE_URL=http://localhost:8001
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8001
@@ -474,6 +489,7 @@ pnpm turbo dev
 | Variable | Required | Description |
 |---|---|---|
 | `GEMINI_API_KEY` | Yes | Google Gemini Vision API key |
+| `GEMINI_MODEL` | No | Gemini model used for structured CAD-IR extraction (default: `gemini-3.7-flash`) |
 | `SESSION_SECRET` | No | Session signing secret (default: dev value) |
 | `API_BASE_URL` | No | Internal server-side API URL (default: `http://localhost:8000`) |
 | `NEXT_PUBLIC_API_BASE_URL` | Yes | Public client-side API URL -must match where uvicorn is running |
@@ -489,8 +505,10 @@ Base URL: `http://localhost:8001`
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/health` | Service health check + OpenCascade version |
-| `POST` | `/extract` | Upload blueprint image → extract 28 parameters via Gemini |
-| `POST` | `/generate` | Submit parameters → build 3D solid → return mesh + feature tree |
+| `POST` | `/extract` | Upload blueprint image → Gemini 3.7 Flash → CAD-IR + review context |
+| `POST` | `/generate` | Submit CAD-IR → build validated B-Rep → return mesh + feature tree |
+| `POST` | `/validate` | Validate a CAD-IR document without executing geometry |
+| `POST` | `/modify` | Apply a structured update/add/remove to CAD-IR and rebuild |
 | `GET` | `/export/step` | Download generated model as STEP (requires OCC) |
 | `GET` | `/export/stl` | Download generated model as binary STL (requires OCC) |
 | `GET` | `/export/obj` | Download generated model as Wavefront OBJ (requires OCC) |
@@ -504,7 +522,20 @@ Base URL: `http://localhost:8001`
 - **Response:**
 ```json
 {
-  "params": { "overall_height": 118.0, "outer_body_diameter": 36.0, ... },
+  "shape_type": "programmatic",
+  "cad_ir": {
+    "version": "1.0",
+    "units": "mm",
+    "views": [{ "id": "front", "view_type": "front", "features": ["base"] }],
+    "features": [{
+      "id": "base",
+      "type": "extrude",
+      "depends_on": ["base_sketch"],
+      "confidence": 0.92,
+      "evidence": [{ "source": "front_view", "reason": "explicit dimension" }]
+    }]
+  },
+  "review_state": "NEEDS_REVIEW",
   "source": "gemini",
   "elapsed_ms": 1243.5
 }
@@ -514,7 +545,7 @@ Base URL: `http://localhost:8001`
 
 - **Content-Type:** `application/json`
 - **Header:** `X-Session-Token: <uuid>` (used to correlate with export calls)
-- **Body:** `LowerValveBodyParams` (28 fields)
+- **Body:** `{ "shape_type": "programmatic", "params": { "cad_ir": { ... } } }`
 - **Response:**
 ```json
 {
@@ -525,7 +556,7 @@ Base URL: `http://localhost:8001`
     "bounding_box": { "min": [x, y, z], "max": [x, y, z] }
   },
   "feature_tree": [
-    { "id": "base_cylinder", "label": "Base Cylinder", "status": "success" }
+    { "id": "base", "label": "Base Feature", "status": "success", "confidence": 0.92 }
   ],
   "elapsed_ms": 4821.0
 }

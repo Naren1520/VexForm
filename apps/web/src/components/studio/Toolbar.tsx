@@ -19,9 +19,11 @@ export default function Toolbar() {
   const handleExport = async (fmt: 'step' | 'stl' | 'obj') => {
     if (!hasModel) return
     setExportingFormat(fmt)
-    const filenames = { step: 'lower_valve_body.step', stl: 'lower_valve_body.stl', obj: 'lower_valve_body.obj' }
+    // Use shape type from store for filename; fall back to 'model'
+    const shapeName = (useAppStore.getState() as any).shapeType ?? 'model'
+    const filename = `${shapeName}.${fmt}`
     try {
-      await downloadBlob(`/export/${fmt}`, filenames[fmt], sessionToken)
+      await downloadBlob(`/export/${fmt}`, filename, sessionToken)
       addToast(`${fmt.toUpperCase()} exported successfully`, 'info')
     } catch (err: any) {
       addToast(err.message ?? `Export ${fmt} failed`, 'error')

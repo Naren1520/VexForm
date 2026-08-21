@@ -1,36 +1,36 @@
 'use client'
 import { useState } from 'react'
-import type { LowerValveBodyParams } from '@vexform/types'
-import { PARAM_SECTIONS, LOWER_VALVE_BODY_REFERENCE } from '@/lib/paramValidation'
+import type { ShapeSchema } from '@vexform/types'
+import { buildParamsFromFormState } from '@/lib/paramValidation'
 import { useAppStore } from '@/store'
 import ParamField from './ParamField'
+import ParamRangesModal from './ParamRangesModal'
 
 export default function ParamReviewForm() {
   const {
     paramFormState,
+    extractedParams,
+    shapeSchema,
+    shapeType,
     extractionStatus,
     extractionSource,
     generateModel,
     generationStatus,
   } = useAppStore()
 
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>(
-    Object.fromEntries(PARAM_SECTIONS.map((s) => [s.label, true]))
-  )
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
+  const [showRanges, setShowRanges] = useState(false)
 
   const toggleSection = (label: string) =>
-    setOpenSections((p) => ({ ...p, [label]: !p[label] }))
+    setOpenSections((p) => ({ ...p, [label]: !(p[label] ?? true) }))
 
   const handleGenerate = () => {
-    if (!paramFormState) return
-    const params: Partial<LowerValveBodyParams> = {}
-    for (const key of Object.keys(LOWER_VALVE_BODY_REFERENCE) as Array<keyof LowerValveBodyParams>) {
-      const field = paramFormState[key]
-      ;(params as any)[key] = field ? field.value : LOWER_VALVE_BODY_REFERENCE[key]
-    }
-    generateModel(params as LowerValveBodyParams)
+    if (!paramFormState || !shapeSchema || !shapeType) return
+    const params = buildParamsFromFormState(shapeSchema, paramFormState, extractedParams ?? undefined)
+    generateModel(shapeType, params)
   }
 
+  // ── Idle / loading states ──────────────────────────────────────────────────
   if (extractionStatus === 'idle') {
     return (
       <p className="text-[11px] px-1 py-4 text-center" style={{ color: '#404040' }}>
@@ -48,48 +48,100 @@ export default function ParamReviewForm() {
     )
   }
 
+  if (!shapeSchema || !paramFormState) return null
+
+  const schema: ShapeSchema = shapeSchema
+  const sections = schema.sections
+
   return (
     <div className="flex flex-col gap-1 min-h-0">
-      {extractionSource && (
-        <div className="flex items-center justify-between px-1 mb-1">
+      {/* Header row */}
+      <div className="flex items-center justify-between px-1 mb-1">
+        <div className="flex items-center gap-2">
           <span className="text-[10px]" style={{ color: '#555' }}>
             {extractionSource === 'gemini' ? '✦ AI extracted' : '◎ Reference values'}
           </span>
-          <span className="text-[10px] font-mono" style={{ color: '#444' }}>HT150</span>
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto space-y-1 pr-0.5">
-        {PARAM_SECTIONS.map((section) => (
-          <div key={section.label} style={{ border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-            <button
-              onClick={() => toggleSection(section.label)}
-              className="w-full flex items-center justify-between px-3 py-2 text-left transition-colors duration-150"
-              style={{ background: '#111' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#161616' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = '#111' }}
+          {schema.display_name && (
+            <span
+              className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+              style={{ background: '#111', border: '1px solid #1a1a1a', color: '#666' }}
             >
-              <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: '#888' }}>
-                {section.label}
-              </span>
-              <span className="text-[10px]" style={{ color: '#444' }}>
-                {openSections[section.label] ? '▲' : '▼'}
-              </span>
-            </button>
-
-            {openSections[section.label] && (
-              <div className="px-3 pb-1 pt-0.5" style={{ borderTop: '1px solid #1a1a1a' }}>
-                {section.keys.map((key) => {
-                  const field = paramFormState?.[key]
-                  if (!field) return null
-                  return <ParamField key={key} paramKey={key} fieldState={field} />
-                })}
-              </div>
-            )}
-          </div>
-        ))}
+              {schema.display_name}
+            </span>
+          )}
+        </div>
+        {/* Material badge if available */}
+        {paramFormState['material'] && (
+          <span className="text-[10px] font-mono" style={{ color: '#444' }}>
+            {paramFormState['material'].value}
+          </span>
+        )}
+        <button
+          onClick={() => setShowRanges(true)}
+          className="text-[10px] px-2 py-0.5 rounded transition-colors duration-150"
+          style={{ background: '#111', border: '1px solid #1a1a1a', color: '#555' }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.color = '#888'
+            ;(e.currentTarget as HTMLElement).style.borderColor = '#333'
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.color = '#555'
+            ;(e.currentTarget as HTMLElement).style.borderColor = '#1a1a1a'
+          }}
+          title="View valid ranges for all parameters"
+        >
+          View Ranges
+        </button>
       </div>
 
+      {showRanges && <ParamRangesModal onClose={() => setShowRanges(false)} />}
+
+      {/* Collapsible param sections */}
+      <div className="flex-1 overflow-y-auto space-y-1 pr-0.5">
+        {sections.map((section) => {
+          const isOpen = openSections[section.label] ?? true
+          return (
+            <div key={section.label} style={{ border: '1px solid #1a1a1a', overflow: 'hidden' }}>
+              <button
+                onClick={() => toggleSection(section.label)}
+                className="w-full flex items-center justify-between px-3 py-2 text-left transition-colors duration-150"
+                style={{ background: '#111' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#161616' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = '#111' }}
+              >
+                <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: '#888' }}>
+                  {section.label}
+                </span>
+                <span className="text-[10px]" style={{ color: '#444' }}>
+                  {isOpen ? '▲' : '▼'}
+                </span>
+              </button>
+
+              {isOpen && (
+                <div className="px-3 pb-1 pt-0.5" style={{ borderTop: '1px solid #1a1a1a' }}>
+                  {section.keys.map((key) => {
+                    const fieldDef = schema.fields.find((f) => f.key === key)
+                    const fieldState = paramFormState[key]
+                    if (!fieldDef || !fieldState) return null
+                    return (
+                      <ParamField
+                        key={key}
+                        paramKey={key}
+                        fieldLabel={fieldDef.label}
+                        fieldUnit={fieldDef.unit}
+                        fieldType={fieldDef.field_type}
+                        fieldState={fieldState}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Generate button */}
       <button
         onClick={handleGenerate}
         disabled={generationStatus === 'loading'}

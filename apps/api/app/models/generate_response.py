@@ -9,6 +9,10 @@ class FeatureNode(BaseModel):
     label: str
     status: Literal["success", "failed", "pending"]
     geometry_ref: Optional[str] = None
+    confidence: Optional[float] = None
+    output_type: Optional[Literal["wire", "face", "solid", "compound", "surface"]] = None
+    topology: Optional[dict] = None
+    evidence: Optional[list[dict]] = None
 
 
 class GenerateResponse(BaseModel):

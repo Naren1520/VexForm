@@ -1,0 +1,1 @@
+{"version":"1.0","units":"mm","views":[{"id":"front","view_type":"front","features":["rim","hub"]}],"features":[{"id":"rim","type":"torus","parameters":{"r_major":35,"r_minor":8},"confidence":0.8},{"id":"hub","type":"cylinder","parameters":{"r":30,"h":20,"z":-10},"depends_on":["rim"],"confidence":0.82}],"dimensions":[],"blueprint_confidence":0.8,"overall_confidence":0.81}

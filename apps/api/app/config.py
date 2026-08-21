@@ -5,6 +5,7 @@ from pydantic import Field
 
 class Settings(BaseSettings):
     gemini_api_key: str = Field(default="")
+    gemini_model: str = Field(default="gemini-3.7-flash")
     session_secret: str = Field(default="dev-secret-change-in-production")
     api_base_url: str = Field(default="http://localhost:8000")
 

@@ -1,10 +1,12 @@
-import type { LowerValveBodyParams, ParamFieldState } from '@vexform/types'
-import { PARAM_LABELS, PARAM_UNITS } from '@/lib/paramValidation'
+import type { ParamFieldState } from '@vexform/types'
 import ParamStatusIcon from './ParamStatusIcon'
 import { useAppStore } from '@/store'
 
 interface Props {
-  paramKey: keyof LowerValveBodyParams
+  paramKey: string
+  fieldLabel: string
+  fieldUnit: string
+  fieldType: 'float' | 'int' | 'string'
   fieldState: ParamFieldState
 }
 
@@ -15,28 +17,24 @@ const STATUS_BORDER: Record<string, string> = {
   user_edited:  '#ffffff22',
 }
 
-export default function ParamField({ paramKey, fieldState }: Props) {
+export default function ParamField({ paramKey, fieldLabel, fieldUnit, fieldType, fieldState }: Props) {
   const updateParamField = useAppStore((s) => s.updateParamField)
-  const label  = PARAM_LABELS[paramKey]
-  const unit   = PARAM_UNITS[paramKey]
-  const isString = paramKey === 'material'
-  const isInt    = ['top_flange_bolt_hole_count', 'bottom_flange_bolt_hole_count'].includes(paramKey)
+  const isString = fieldType === 'string'
   const borderColor = STATUS_BORDER[fieldState.status] ?? '#ffffff22'
 
   return (
     <div className="flex items-center gap-2 py-1">
       <label className="flex-1 text-[11px] leading-tight min-w-0 truncate" style={{ color: '#555' }}>
-        {label}
+        {fieldLabel}
       </label>
       <div className="flex items-center gap-1.5 shrink-0">
         <input
           type={isString ? 'text' : 'number'}
-          step={isInt ? '1' : '0.1'}
+          step={fieldType === 'int' ? '1' : '0.1'}
           value={fieldState.value as string | number}
           onChange={(e) => {
-            const raw = e.target.value
-            const val = isString ? raw : isInt ? parseInt(raw) : parseFloat(raw)
-            updateParamField(paramKey, val)
+            // Store the raw string value — buildParamsFromFormState will coerce on generate
+            updateParamField(paramKey, e.target.value)
           }}
           className="w-[68px] px-2 py-1 text-xs font-mono outline-none transition-colors duration-150"
           style={{
@@ -47,8 +45,8 @@ export default function ParamField({ paramKey, fieldState }: Props) {
           onFocus={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#c8b89a88' }}
           onBlur={(e) => { (e.currentTarget as HTMLElement).style.borderColor = borderColor }}
         />
-        {unit && (
-          <span className="text-[10px] w-5 shrink-0" style={{ color: '#444' }}>{unit}</span>
+        {fieldUnit && (
+          <span className="text-[10px] w-5 shrink-0" style={{ color: '#444' }}>{fieldUnit}</span>
         )}
         <span className="w-3 shrink-0 text-center">
           <ParamStatusIcon status={fieldState.status} />

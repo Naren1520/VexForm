@@ -1,40 +1,34 @@
-// ── Parameter types ───────────────────────────────────────────────────────────
+// ── Generic shape parameter types ─────────────────────────────────────────────
 
-export interface LowerValveBodyParams {
-  overall_height: number;
-  outer_body_diameter: number;
-  main_bore_upper_diameter: number;
-  main_bore_lower_inner_diameter: number;
-  main_bore_lower_outer_step_diameter: number;
-  side_port_bore_diameter: number;
-  top_flange_outer_diameter: number;
-  top_flange_bolt_hole_diameter: number;
-  top_flange_bolt_hole_depth: number;
-  top_flange_bolt_hole_count: number;
-  top_flange_counterbore_diameter: number;
-  top_flange_counterbore_depth: number;
-  bottom_flange_outer_diameter: number;
-  bottom_flange_bolt_circle_diameter: number;
-  bottom_flange_outer_flange_diameter: number;
-  bottom_flange_bolt_hole_diameter: number;
-  bottom_flange_bolt_hole_count: number;
-  bottom_flange_counterbore_diameter: number;
-  bottom_flange_counterbore_depth: number;
-  side_port_flange_outer_diameter: number;
-  side_port_bolt_hole_diameter: number;
-  side_port_bolt_hole_spacing: number;
-  side_port_angle_degrees: number;
-  side_port_offset_from_top: number;
-  unspecified_fillet_radius: number;
-  internal_step_chamfer: number;
-  other_chamfer: number;
-  material: string;
+/** A single parameter field returned by the backend schema. */
+export interface FieldDef {
+  key: string;
+  label: string;
+  unit: string;           // "mm", "°", "" etc.
+  field_type: 'float' | 'int' | 'string';
+  min_val: number | null;
+  max_val: number | null;
+  description: string;
 }
 
-// Partial version returned by AI_Extractor (values may be null)
-export type ExtractedParams = {
-  [K in keyof LowerValveBodyParams]: LowerValveBodyParams[K] | null;
-};
+/** A collapsible section of fields in the param panel. */
+export interface SectionDef {
+  label: string;
+  keys: string[];
+}
+
+/** Full parameter schema for a shape type — returned by /extract and GET /shapes/:type/schema */
+export interface ShapeSchema {
+  shape_type: string;
+  display_name: string;
+  fields: FieldDef[];
+  sections: SectionDef[];
+  feature_tree_order: string[];
+  reference_values: Record<string, number | string | null>;
+}
+
+/** Generic params dict — keys are field names, values are numbers, strings or null */
+export type ShapeParams = Record<string, number | string | null>;
 
 // ── Field status for the review form ─────────────────────────────────────────
 
@@ -49,9 +43,8 @@ export interface ParamFieldState {
   status: ParamFieldStatus;
 }
 
-export type ParamFormState = {
-  [K in keyof LowerValveBodyParams]: ParamFieldState;
-};
+/** Dynamic form state — keyed by field name */
+export type ParamFormState = Record<string, ParamFieldState>;
 
 // ── Mesh payload from backend ─────────────────────────────────────────────────
 
@@ -79,56 +72,51 @@ export interface FeatureNode {
   status: FeatureStatus;
   /** Face/edge identifiers for highlight in viewport */
   geometryRef?: string;
+  confidence?: number;
+  outputType?: 'wire' | 'face' | 'solid' | 'compound' | 'surface';
+  topology?: Record<string, unknown>;
+  evidence?: Record<string, unknown>[];
 }
 
-export const FEATURE_TREE_ORDER: readonly string[] = [
-  'base_cylinder',
-  'top_flange_extrusion',
-  'bottom_flange_extrusion',
-  'side_port_boss',
-  'upper_bore_cut',
-  'lower_bore_cut',
-  'side_port_bore_cut',
-  'top_bolt_holes_cut',
-  'top_counterbores_cut',
-  'bottom_bolt_holes_cut',
-  'bottom_counterbores_cut',
-  'side_port_bolt_holes_cut',
-  'fillets',
-  'chamfers',
-] as const;
+export interface CADFeature {
+  id: string;
+  type: string;
+  parameters: Record<string, unknown>;
+  depends_on?: string[];
+  confidence?: number;
+  label?: string;
+}
 
-export const FEATURE_TREE_LABELS: Record<string, string> = {
-  base_cylinder: 'Base Cylinder',
-  top_flange_extrusion: 'Top Flange Extrusion',
-  bottom_flange_extrusion: 'Bottom Flange Extrusion',
-  side_port_boss: 'Side Port Boss',
-  upper_bore_cut: 'Upper Bore Cut',
-  lower_bore_cut: 'Lower Bore Cut',
-  side_port_bore_cut: 'Side Port Bore Cut',
-  top_bolt_holes_cut: 'Top Bolt Holes Cut',
-  top_counterbores_cut: 'Top Counterbores Cut',
-  bottom_bolt_holes_cut: 'Bottom Bolt Holes Cut',
-  bottom_counterbores_cut: 'Bottom Counterbores Cut',
-  side_port_bolt_holes_cut: 'Side Port Bolt Holes Cut',
-  fillets: 'Fillets',
-  chamfers: 'Chamfers',
-};
+export interface CADModel {
+  version: string;
+  units: string;
+  coordinate_system?: Record<string, unknown>;
+  sketches?: Record<string, unknown>[];
+  features: CADFeature[];
+  dimensions?: Record<string, unknown>[];
+  constraints?: Record<string, unknown>[];
+  metadata?: Record<string, unknown>;
+  views?: { id: string; view_type: string; features?: string[]; confidence?: number }[];
+  blueprint_confidence?: number;
+  overall_confidence?: number;
+}
 
 // ── API request / response contracts ─────────────────────────────────────────
 
-export interface ExtractRequest {
-  // Sent as multipart/form-data; file field name: "blueprint"
-}
-
 export interface ExtractResponse {
-  params: ExtractedParams;
+  shape_type: string;
+  params: ShapeParams;
+  schema: ShapeSchema;
   source: 'gemini' | 'fallback';
   elapsed_ms: number;
+  cad_ir?: CADModel;
+  review_state?: 'EXTRACTING' | 'EXTRACTED' | 'NEEDS_REVIEW' | 'VALIDATED' | 'GENERATING' | 'GENERATED' | 'FAILED';
+  uncertainties?: { code: string; message: string; feature_ids?: string[]; confidence?: number }[];
 }
 
 export interface GenerateRequest {
-  params: LowerValveBodyParams;
+  shape_type: string;
+  params: ShapeParams;
 }
 
 export interface GenerateResponse {
@@ -165,3 +153,42 @@ export interface Toast {
   level: 'info' | 'error';
   createdAt: number;
 }
+
+// ── Legacy LowerValveBodyParams (kept for reference / backwards compat) ───────
+// The frontend now uses ShapeParams (generic dict) at runtime.
+// This interface documents the Lower Valve Body field names.
+export interface LowerValveBodyParams {
+  overall_height: number;
+  outer_body_diameter: number;
+  main_bore_upper_diameter: number;
+  main_bore_lower_inner_diameter: number;
+  main_bore_lower_outer_step_diameter: number;
+  side_port_bore_diameter: number;
+  top_flange_outer_diameter: number;
+  top_flange_bolt_hole_diameter: number;
+  top_flange_bolt_hole_depth: number;
+  top_flange_bolt_hole_count: number;
+  top_flange_counterbore_diameter: number;
+  top_flange_counterbore_depth: number;
+  bottom_flange_outer_diameter: number;
+  bottom_flange_bolt_circle_diameter: number;
+  bottom_flange_outer_flange_diameter: number;
+  bottom_flange_bolt_hole_diameter: number;
+  bottom_flange_bolt_hole_count: number;
+  bottom_flange_counterbore_diameter: number;
+  bottom_flange_counterbore_depth: number;
+  side_port_flange_outer_diameter: number;
+  side_port_bolt_hole_diameter: number;
+  side_port_bolt_hole_spacing: number;
+  side_port_angle_degrees: number;
+  side_port_offset_from_top: number;
+  unspecified_fillet_radius: number;
+  internal_step_chamfer: number;
+  other_chamfer: number;
+  material: string;
+}
+
+// Partial version returned by AI extractor (values may be null)
+export type ExtractedParams = {
+  [K in keyof LowerValveBodyParams]: LowerValveBodyParams[K] | null;
+};

@@ -1,0 +1,1 @@
+{"version":"1.0","units":"mm","views":[{"id":"side","view_type":"side","features":["shaft"]}],"features":[{"id":"shaft","type":"cylinder","parameters":{"r":15,"h":240},"confidence":0.96}],"dimensions":[{"name":"diameter","value":30,"confidence":1.0,"source":"side_view","reason":"explicit diameter annotation"}],"blueprint_confidence":0.95,"overall_confidence":0.95}

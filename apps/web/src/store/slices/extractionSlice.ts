@@ -1,18 +1,23 @@
 import { StateCreator } from 'zustand'
-import type { ExtractedParams, LowerValveBodyParams, ParamFieldState, ParamFormState, ParamFieldStatus } from '@vexform/types'
-import { LOWER_VALVE_BODY_REFERENCE, computeFieldStatus } from '@/lib/paramValidation'
+import type { CADModel, ShapeParams, ShapeSchema, ParamFieldState, ParamFormState, ParamFieldStatus } from '@vexform/types'
+import { computeFieldStatus } from '@/lib/paramValidation'
 import { UiSlice } from './uiSlice'
 
 export type ExtractionStatus = 'idle' | 'loading' | 'success' | 'error'
 
 export interface ExtractionSlice {
   extractionStatus: ExtractionStatus
-  extractedParams: ExtractedParams | null
+  extractedParams: ShapeParams | null
   paramFormState: ParamFormState | null
   extractionSource: 'gemini' | 'fallback' | null
   extractionError: string | null
+  /** The full schema returned by the backend for the detected/selected shape */
+  shapeSchema: ShapeSchema | null
+  /** The identified shape type string */
+  shapeType: string | null
+  cadIr: CADModel | null
   startExtraction: (file: File) => Promise<void>
-  updateParamField: (key: keyof LowerValveBodyParams, value: number | string) => void
+  updateParamField: (key: string, value: number | string) => void
   clearExtraction: () => void
 }
 
@@ -27,6 +32,9 @@ export const createExtractionSlice: StateCreator<
   paramFormState: null,
   extractionSource: null,
   extractionError: null,
+  shapeSchema: null,
+  shapeType: null,
+  cadIr: null,
 
   startExtraction: async (file: File) => {
     set({ extractionStatus: 'loading', extractionError: null })
@@ -50,34 +58,55 @@ export const createExtractionSlice: StateCreator<
       }
 
       const data = await res.json()
-      const extracted: ExtractedParams = data.params
+      const extracted: ShapeParams = data.params
+      const schema: ShapeSchema = data.schema
+      const shapeType: string = 'programmatic'
       const source: 'gemini' | 'fallback' = data.source
+      const referenceValues = schema.reference_values ?? {}
 
-      const formState: Partial<ParamFormState> = {}
-      const refKeys = Object.keys(LOWER_VALVE_BODY_REFERENCE) as Array<keyof LowerValveBodyParams>
+      // For programmatic shapes, store the construction program in params too
+      // so the generate call can send it to the backend
+      const paramsWithProgram: ShapeParams = { ...extracted }
+      if (shapeType === 'programmatic' && data.construction_program) {
+        paramsWithProgram['construction_program'] = data.construction_program as any
+        paramsWithProgram['part_name'] = data.part_name ?? ''
+      }
+      if (data.cad_ir) {
+        paramsWithProgram['cad_ir'] = data.cad_ir as any
+      }
 
-      for (const key of refKeys) {
-        const extractedVal = extracted[key]
-        const refVal = LOWER_VALVE_BODY_REFERENCE[key]
+      // Build per-field form state with deviation scoring
+      const formState: ParamFormState = {}
+      for (const fieldDef of schema.fields) {
+        const key = fieldDef.key
+        const extractedVal = paramsWithProgram[key]
+        const refVal = referenceValues[key]
 
         let fieldState: ParamFieldState
         if (extractedVal === null || extractedVal === undefined) {
-          fieldState = { value: refVal as number | string, status: 'ai_null' }
+          fieldState = {
+            value: (refVal !== null && refVal !== undefined) ? (refVal as number | string) : '',
+            status: 'ai_null',
+          }
         } else {
-          const status = typeof refVal === 'number' && typeof extractedVal === 'number'
-            ? computeFieldStatus(extractedVal, refVal)
-            : 'ai_match'
+          const status: ParamFieldStatus =
+            typeof refVal === 'number' && typeof extractedVal === 'number'
+              ? computeFieldStatus(extractedVal, refVal)
+              : 'ai_match'
           fieldState = { value: extractedVal as number | string, status }
         }
-        formState[key] = fieldState as ParamFieldState
+        formState[key] = fieldState
       }
 
       set({
         extractionStatus: 'success',
-        extractedParams: extracted,
-        paramFormState: formState as ParamFormState,
+        extractedParams: paramsWithProgram,
+        paramFormState: formState,
         extractionSource: source,
         extractionError: null,
+        shapeSchema: schema,
+        shapeType,
+        cadIr: data.cad_ir ?? null,
       })
     } catch (err: any) {
       const msg = err?.message ?? 'Extraction failed'
@@ -86,7 +115,7 @@ export const createExtractionSlice: StateCreator<
     }
   },
 
-  updateParamField: (key: keyof LowerValveBodyParams, value: number | string) => {
+  updateParamField: (key: string, value: number | string) => {
     const current = get().paramFormState
     if (!current) return
     set({
@@ -104,6 +133,9 @@ export const createExtractionSlice: StateCreator<
       paramFormState: null,
       extractionSource: null,
       extractionError: null,
+      shapeSchema: null,
+      shapeType: null,
+      cadIr: null,
     })
   },
 })

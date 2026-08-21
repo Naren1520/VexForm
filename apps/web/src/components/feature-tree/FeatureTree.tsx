@@ -1,7 +1,6 @@
 'use client'
 import { Component, ReactNode } from 'react'
 import type { FeatureNode } from '@vexform/types'
-import { FEATURE_TREE_ORDER, FEATURE_TREE_LABELS } from '@vexform/types'
 import { useAppStore } from '@/store'
 import FeatureTreeNode from './FeatureTreeNode'
 
@@ -27,12 +26,7 @@ class FeatureTreeErrorBoundary extends Component<
 }
 
 export default function FeatureTree() {
-  const { featureTree, generationStatus } = useAppStore()
-
-  const nodes: FeatureNode[] = FEATURE_TREE_ORDER.map((id) => {
-    const found = featureTree.find((n) => n.id === id)
-    return found ?? { id, label: FEATURE_TREE_LABELS[id] ?? id, status: 'pending' as any }
-  })
+  const { featureTree, generationStatus, shapeSchema } = useAppStore()
 
   if (generationStatus !== 'success' && featureTree.length === 0) {
     return (
@@ -42,10 +36,27 @@ export default function FeatureTree() {
     )
   }
 
+  // Use schema-defined order if available, otherwise use order from API response
+  const featureOrder: string[] = shapeSchema?.shape_type === 'programmatic' || shapeSchema?.shape_type === 'cad_ir'
+    ? featureTree.map((n) => n.id)
+    : (shapeSchema?.feature_tree_order ?? featureTree.map((n) => n.id))
+
+  // Build ordered nodes: fill in pending for any expected ops not yet returned
+  const nodeMap = new Map(featureTree.map((n) => [n.id, n]))
+  const nodes: FeatureNode[] = featureOrder.map((id) => {
+    return nodeMap.get(id) ?? { id, label: id.replace(/_/g, ' '), status: 'pending' as const }
+  })
+  // Append any nodes from API that weren't in the schema order
+  for (const n of featureTree) {
+    if (!featureOrder.includes(n.id)) nodes.push(n)
+  }
+
   const KNOWN_UNAVAILABLE = new Set(['chamfers'])
   const successCount = nodes.filter((n) => n.status === 'success').length
   const failCount    = nodes.filter((n) => n.status === 'failed' && !KNOWN_UNAVAILABLE.has(n.id)).length
   const naCount      = nodes.filter((n) => n.status === 'failed' && KNOWN_UNAVAILABLE.has(n.id)).length
+
+  const displayName = shapeSchema?.display_name ?? 'Shape'
 
   return (
     <FeatureTreeErrorBoundary>
@@ -66,7 +77,7 @@ export default function FeatureTree() {
 
         <div className="flex-1 overflow-y-auto pb-2">
           <p className="text-[10px] uppercase tracking-widest px-3 py-2" style={{ color: '#333' }}>
-            Lower Valve Body
+            {displayName}
           </p>
           {nodes.map((node, i) => (
             <FeatureTreeNode key={node.id} node={node} index={i} />

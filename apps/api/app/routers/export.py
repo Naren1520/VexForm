@@ -6,27 +6,59 @@ from fastapi.responses import Response
 router = APIRouter(prefix="/export", tags=["export"])
 
 
-def _get_shape_or_mesh(session_token: str):
-    from app.routers.generate import get_session_params
-    from app.models.params import LowerValveBodyParams
+def _get_shape_for_export(session_token: str):
+    """Rebuild the OCC shape for the last generated model in this session."""
+    from app.routers.generate import get_session_store
+    from app.shapes.registry import get_registry
 
-    params_dict = get_session_params(session_token)
-    if params_dict is None:
-        return None, None
+    session = get_session_store(session_token)
+    if session is None:
+        return None, None, None
+
+    shape_type = session.get("shape_type", "programmatic")
+    params_dict = session.get("params", {})
+
+    registry = get_registry()
+    defn = registry.get(shape_type)
+    if defn is None:
+        return None, None, shape_type
 
     try:
-        from app.services.geometry_engine import build_lower_valve_body
-        shape, _ = build_lower_valve_body(LowerValveBodyParams(**params_dict))
-        return shape, params_dict
+        # Rebuild OCC shape (build_fn returns mesh_data + tree; we need the raw shape)
+        # For shapes that have an OCC-backed builder we go through the geometry engine directly.
+        # The build_fn is designed for mesh output, so we use a shape-aware rebuild path.
+        shape = _rebuild_occ_shape(shape_type, params_dict)
+        return shape, params_dict, shape_type
     except ImportError:
-        return None, params_dict
+        return None, params_dict, shape_type
+    except Exception as exc:
+        raise RuntimeError(f"Export rebuild failed: {exc}") from exc
+
+
+def _rebuild_occ_shape(shape_type: str, params_dict: dict):
+    """Rebuild the raw OCC TopoDS_Shape for export without mesh serialisation."""
+    if shape_type in {"programmatic", "cad_ir"} and params_dict.get("cad_ir"):
+        from app.cad.ir import CADModel
+        from app.cad.executor import execute_cad_ir_shape
+        return execute_cad_ir_shape(CADModel.model_validate(params_dict["cad_ir"]))[0]
+    if shape_type == "lower_valve_body":
+        from app.models.params import LowerValveBodyParams
+        from app.services.geometry_engine import build_lower_valve_body
+        p = LowerValveBodyParams(**params_dict)
+        shape, _ = build_lower_valve_body(p)
+        return shape
+    raise NotImplementedError(f"OCC export requires CAD-IR for shape type: {shape_type}")
+
+
+def _filename(shape_type: str, ext: str) -> str:
+    return f"{shape_type}.{ext}"
 
 
 @router.get("/step")
 async def export_step(request: Request):
     session_token = request.headers.get("X-Session-Token", "default")
     try:
-        shape, params_dict = _get_shape_or_mesh(session_token)
+        shape, params_dict, shape_type = _get_shape_for_export(session_token)
     except Exception as exc:
         raise HTTPException(500, detail={"error": f"Export STEP failed: {exc}"})
 
@@ -51,8 +83,9 @@ async def export_step(request: Request):
             content = f.read()
         os.unlink(tmp_path)
 
+        fname = _filename(shape_type, "step")
         return Response(content=content, media_type="application/step",
-                        headers={"Content-Disposition": 'attachment; filename="lower_valve_body.step"'})
+                        headers={"Content-Disposition": f'attachment; filename="{fname}"'})
     except Exception as exc:
         raise HTTPException(500, detail={"error": f"Export STEP failed: {exc}"})
 
@@ -61,7 +94,7 @@ async def export_step(request: Request):
 async def export_stl(request: Request):
     session_token = request.headers.get("X-Session-Token", "default")
     try:
-        shape, params_dict = _get_shape_or_mesh(session_token)
+        shape, params_dict, shape_type = _get_shape_for_export(session_token)
     except Exception as exc:
         raise HTTPException(500, detail={"error": f"Export STL failed: {exc}"})
 
@@ -87,8 +120,9 @@ async def export_stl(request: Request):
             content = f.read()
         os.unlink(tmp_path)
 
+        fname = _filename(shape_type, "stl")
         return Response(content=content, media_type="model/stl",
-                        headers={"Content-Disposition": 'attachment; filename="lower_valve_body.stl"'})
+                        headers={"Content-Disposition": f'attachment; filename="{fname}"'})
     except Exception as exc:
         raise HTTPException(500, detail={"error": f"Export STL failed: {exc}"})
 
@@ -97,7 +131,7 @@ async def export_stl(request: Request):
 async def export_obj(request: Request):
     session_token = request.headers.get("X-Session-Token", "default")
     try:
-        shape, params_dict = _get_shape_or_mesh(session_token)
+        shape, params_dict, shape_type = _get_shape_for_export(session_token)
     except Exception as exc:
         raise HTTPException(500, detail={"error": f"Export OBJ failed: {exc}"})
 
@@ -108,8 +142,11 @@ async def export_obj(request: Request):
 
     try:
         from app.services.mesh_serialiser import serialise_mesh_to_obj
-        obj_content = serialise_mesh_to_obj(shape)
+        # Use a display-friendly name for the OBJ header
+        obj_name = shape_type.replace("_", " ").title().replace(" ", "")
+        obj_content = serialise_mesh_to_obj(shape, object_name=obj_name)
+        fname = _filename(shape_type, "obj")
         return Response(content=obj_content.encode("utf-8"), media_type="text/plain",
-                        headers={"Content-Disposition": 'attachment; filename="lower_valve_body.obj"'})
+                        headers={"Content-Disposition": f'attachment; filename="{fname}"'})
     except Exception as exc:
         raise HTTPException(500, detail={"error": f"Export OBJ failed: {exc}"})

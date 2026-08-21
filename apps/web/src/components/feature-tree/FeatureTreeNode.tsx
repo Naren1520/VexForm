@@ -26,7 +26,9 @@ export default function FeatureTreeNode({ node, index }: Props) {
     node.status === 'failed'  ? '✗' : '⋯'
 
   const statusTitle =
-    isUnavailable ? 'Not available in pythonocc-core 7.9' : undefined
+    isUnavailable ? 'Not available in pythonocc-core 7.9' : node.topology
+      ? `${Object.entries(node.topology).filter(([key]) => key !== 'shape_type' && key !== 'lineage').map(([key, value]) => `${key}: ${(value as unknown[]).length}`).join(', ')}${node.evidence?.length ? `; evidence: ${node.evidence.length}` : ''}`
+      : undefined
 
   return (
     <button
@@ -52,6 +54,11 @@ export default function FeatureTreeNode({ node, index }: Props) {
       >
         {statusIcon}
       </span>
+      {node.confidence !== undefined && (
+        <span className="text-[9px] font-mono shrink-0" style={{ color: node.confidence < 0.7 ? '#d49a62' : '#555' }}>
+          {Math.round(node.confidence * 100)}%
+        </span>
+      )}
     </button>
   )
 }

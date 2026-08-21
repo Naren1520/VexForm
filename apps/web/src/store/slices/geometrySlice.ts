@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand'
-import type { MeshPayload, FeatureNode, LowerValveBodyParams } from '@vexform/types'
+import type { MeshPayload, FeatureNode, ShapeParams } from '@vexform/types'
 import { UiSlice } from './uiSlice'
 
 export type GenerationStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -11,7 +11,7 @@ export interface GeometrySlice {
   geometryError: string | null
   selectedFeatureId: string | null
   sessionToken: string
-  generateModel: (params: LowerValveBodyParams) => Promise<void>
+  generateModel: (shapeType: string, params: ShapeParams) => Promise<void>
   selectFeature: (id: string | null) => void
   clearGeometry: () => void
 }
@@ -31,7 +31,7 @@ export const createGeometrySlice: StateCreator<
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2),
 
-  generateModel: async (params: LowerValveBodyParams) => {
+  generateModel: async (shapeType: string, params: ShapeParams) => {
     set({ generationStatus: 'loading', geometryError: null, meshPayload: null, featureTree: [] })
 
     try {
@@ -44,7 +44,7 @@ export const createGeometrySlice: StateCreator<
           'Content-Type': 'application/json',
           'X-Session-Token': sessionToken,
         },
-        body: JSON.stringify(params),
+        body: JSON.stringify({ shape_type: shapeType, params }),
       })
 
       if (!res.ok) {
@@ -61,7 +61,7 @@ export const createGeometrySlice: StateCreator<
 
       const data = await res.json()
 
-      // Normalise bounding box -backend uses snake_case, frontend expects camelCase
+      // Normalise bounding box — backend uses snake_case, frontend expects camelCase
       const mesh: MeshPayload = {
         vertices: data.mesh.vertices,
         indices: data.mesh.indices,
@@ -78,6 +78,10 @@ export const createGeometrySlice: StateCreator<
           label: n.label,
           status: n.status,
           geometryRef: n.geometry_ref ?? n.geometryRef,
+          confidence: n.confidence,
+          outputType: n.output_type ?? n.outputType,
+          topology: n.topology,
+          evidence: n.evidence,
         })
       )
 
