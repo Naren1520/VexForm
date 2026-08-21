@@ -4,6 +4,37 @@ from __future__ import annotations
 import math
 from app.cad.ir.models import CADModel
 
+
+def extrusion_dimension(parameters: dict):
+    """Read an explicitly supplied extrusion extent without guessing geometry."""
+    keys = {"distance", "depth", "height", "length", "thickness", "extension", "run", "span", "offset"}
+
+    def find(value):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                normalized = str(key).lower().replace("-", "_")
+                stem = normalized.removesuffix("_mm").removesuffix("_deg")
+                if stem in keys or any(stem.endswith(f"_{suffix}") for suffix in keys):
+                    if isinstance(item, (int, float)):
+                        return item
+                named_value = str(item).lower().replace("-", "_").removesuffix("_mm").removesuffix("_deg")
+                if normalized in {"name", "key", "parameter"} and (named_value in keys or any(named_value.endswith(f"_{suffix}") for suffix in keys)):
+                    sibling = value.get("value")
+                    if isinstance(sibling, (int, float)):
+                        return sibling
+            for item in value.values():
+                found = find(item)
+                if found is not None:
+                    return found
+        elif isinstance(value, list):
+            for item in value:
+                found = find(item)
+                if found is not None:
+                    return found
+        return None
+
+    return find(parameters)
+
 SUPPORTED_FEATURES = {
     "box", "cylinder", "cone", "sphere", "torus", "sketch", "extrude",
     "revolve", "sweep", "loft", "union", "fuse", "cut", "intersection",
@@ -52,8 +83,12 @@ def validate_cad_ir(model: CADModel) -> list[str]:
                 errors.append(f"negative parameter '{key}' on '{feature.id}'")
         if feature.type == "sketch":
             errors.extend(_validate_sketch(feature.id, feature.parameters))
-        if feature.type == "extrude" and feature.parameters.get("distance", 0) == 0:
-            errors.append(f"feature '{feature.id}' extrusion distance must be non-zero")
+        if feature.type == "extrude":
+            extent = extrusion_dimension_for(feature.parameters)
+            if extent is None:
+                errors.append(f"feature '{feature.id}' extrusion requires a distance, depth, height, length, or thickness")
+            elif float(extent) == 0:
+                errors.append(f"feature '{feature.id}' extrusion distance must be non-zero")
         if feature.type in {"hole", "cut_cylinder"} and "diameter" in feature.parameters:
             if float(feature.parameters["diameter"]) <= 0:
                 errors.append(f"feature '{feature.id}' hole diameter must be positive")
@@ -81,6 +116,10 @@ def validate_cad_ir(model: CADModel) -> list[str]:
     for feature in model.features:
         visit(feature.id)
     return list(dict.fromkeys(errors))
+
+
+def extrusion_dimension_for(parameters: dict):
+    return extrusion_dimension(parameters)
 
 
 def _validate_sketch(feature_id: str, parameters: dict) -> list[str]:

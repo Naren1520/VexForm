@@ -1,5 +1,5 @@
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000'
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8001'
 
 export async function apiGet(path: string, sessionToken?: string) {
   const res = await fetch(`${API_BASE_URL}${path}`, {

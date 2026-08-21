@@ -3,6 +3,7 @@ import { useAppStore } from '@/store'
 import { downloadBlob } from '@/lib/api'
 import Link from 'next/link'
 import Image from 'next/image'
+import DiagnosticsMenu from './DiagnosticsMenu'
 
 export default function Toolbar() {
   const {
@@ -39,7 +40,7 @@ export default function Toolbar() {
 
   return (
     <div
-      className="h-12 flex items-center px-4 gap-3 shrink-0 overflow-x-auto"
+      className="h-12 flex items-center px-4 gap-3 shrink-0 overflow-visible relative z-50"
       style={{ background: '#0a0a0a', borderBottom: '1px solid #1a1a1a' }}
     >
       <Link href="/" className="flex items-center gap-2.5 mr-3 shrink-0 group">
@@ -102,6 +103,7 @@ export default function Toolbar() {
             ) : fmt.toUpperCase()}
           </button>
         ))}
+        <DiagnosticsMenu />
       </div>
     </div>
   )

@@ -5,7 +5,7 @@ import math
 from typing import Any
 from app.cad.features.registry import FEATURE_REGISTRY
 from app.cad.ir.models import CADModel, CADFeature, Sketch
-from app.cad.ir.validation import validate_cad_ir
+from app.cad.ir.validation import validate_cad_ir, extrusion_dimension_for
 from app.cad.errors import CADExecutionError
 from app.cad.topology import extract_topology, resolve_topology, topology_objects
 
@@ -190,19 +190,58 @@ def _execute_feature(o: dict, feature: CADFeature, shapes: dict[str, Any], curre
         if feature.type == "box":
             shape = _make_box(o, float(p["sx"]), float(p["sy"]), float(p["sz"]), float(p.get("x", 0)), float(p.get("y", 0)), float(p.get("z", 0)), bool(p.get("centered", True)))
         elif feature.type == "cylinder":
-            shape = _make_cylinder(o, float(p["r"]), float(p["h"]), float(p.get("x", 0)), float(p.get("y", 0)), float(p.get("z", 0)), float(p.get("dx_dir", 0)), float(p.get("dy_dir", 0)), float(p.get("dz_dir", 1)))
+            radius = p.get("r", p.get("radius"))
+            if radius is None:
+                diameter = p.get("diameter", p.get("outer_diameter"))
+                if diameter is not None:
+                    radius = float(diameter) / 2
+            height = p.get("h", p.get("height", p.get("length")))
+            if radius is None or height is None:
+                raise CADExecutionError(feature.id, "INVALID_CYLINDER", "cylinder requires a radius or diameter and a height")
+            shape = _make_cylinder(o, float(radius), float(height), float(p.get("x", 0)), float(p.get("y", 0)), float(p.get("z", 0)), float(p.get("dx_dir", 0)), float(p.get("dy_dir", 0)), float(p.get("dz_dir", 1)))
         else:
             from app.services.program_executor import execute_program
             shape, _ = execute_program([operation])
         return shape if current is None else _fuse(o, current, shape)
     if feature.type in {"extrude", "rib"}:
-        source = shapes[feature.depends_on[0]]
-        distance = float(p.get("distance", p.get("thickness", 0)))
+        source_id = _source_feature_id(feature, "profile")
+        distance_value = extrusion_dimension_for(p)
+        distance = float(distance_value) if distance_value is not None else 0.0
+        if source_id is None or source_id not in shapes:
+            if distance <= 0:
+                raise CADExecutionError(feature.id, "INVALID_PROFILE", "extrusion requires a valid sketch/profile dependency and an explicit extent")
+            direct_shape = _direct_extrusion(o, p, distance)
+            if direct_shape is None:
+                raise CADExecutionError(feature.id, "INVALID_PROFILE", "extrusion profile is missing; provide a sketch dependency or explicit circular/rectangular profile dimensions")
+            return direct_shape
+        source = shapes[source_id]
+        if source.ShapeType() not in {4, 5}:
+            direct_shape = _direct_extrusion(o, p, distance)
+            if direct_shape is not None:
+                return _fuse(o, source, direct_shape)
+            profile = _highest_solid_face(source)
+            if profile is not None and distance > 0:
+                direction = p.get("direction", [0, 0, 1])
+                vector = o["Vec"](*(float(value) * distance for value in direction))
+                prism = o["Prism"](profile, vector, True)
+                if prism.IsDone() and not prism.Shape().IsNull():
+                    return _fuse(o, source, prism.Shape())
+            raise CADExecutionError(
+                feature.id,
+                "INVALID_PROFILE",
+                f"extrusion profile '{source_id}' must be a face or wire, not a {source.ShapeType()} shape",
+            )
         direction = p.get("direction", [0, 0, 1])
         vector = o["Vec"](*(float(value) * distance for value in direction))
-        return o["Prism"](source, vector, True).Shape()
+        prism = o["Prism"](source, vector, True)
+        if not prism.IsDone() or prism.Shape().IsNull():
+            raise CADExecutionError(feature.id, "INVALID_EXTRUSION", "extrusion produced an invalid shape")
+        return prism.Shape()
     if feature.type == "revolve":
-        source = shapes[feature.depends_on[0]]
+        source_id = _source_feature_id(feature, "profile")
+        if source_id is None or source_id not in shapes:
+            raise CADExecutionError(feature.id, "INVALID_REVOLVE", "revolve requires a valid sketch/profile dependency")
+        source = shapes[source_id]
         axis = p.get("axis", {})
         origin = axis.get("origin", [0, 0, 0]); direction = axis.get("direction", [0, 1, 0])
         angle = math.radians(float(p.get("angle", 360)))
@@ -214,17 +253,116 @@ def _execute_feature(o: dict, feature: CADFeature, shapes: dict[str, Any], curre
         loft.Build()
         return _assert_shape(loft.Shape(), "loft")
     if feature.type == "sweep":
-        profile_shape = shapes[feature.depends_on[0]]
+        profile_id = _source_feature_id(feature, "profile", 0)
+        path_id = _source_feature_id(feature, "path", 1)
+        if profile_id is None or path_id is None or profile_id not in shapes or path_id not in shapes:
+            raise CADExecutionError(feature.id, "INVALID_SWEEP", "sweep requires valid profile and path dependencies")
+        profile_shape = shapes[profile_id]
         profile = profile_shape if profile_shape.ShapeType() == 4 else _as_wire(o, profile_shape)
-        path = _as_wire(o, shapes[feature.depends_on[1]])
+        path = _as_wire(o, shapes[path_id])
         return _assert_shape(o["Pipe"](path, profile).Shape(), "sweep")
+    if feature.type == "cut":
+        base_id = _source_feature_id(feature, "base", 0)
+        if base_id is None or base_id not in shapes:
+            raise CADExecutionError(feature.id, "INVALID_CUT", "cut requires a valid base dependency")
+        tool_ids = feature.depends_on[1:]
+        explicit_tool_id = _source_feature_id(feature, "tool", 1)
+        if explicit_tool_id is not None and explicit_tool_id not in tool_ids:
+            tool_ids = [explicit_tool_id, *tool_ids]
+        if not tool_ids:
+            radius = _parameter_number(p, {"r", "radius"})
+            if radius is None:
+                diameter = _parameter_number(p, {"diameter", "bore_diameter", "inner_diameter", "hole_diameter", "port_diameter"})
+                if diameter is not None:
+                    radius = float(diameter) / 2
+            height = extrusion_dimension_for(p) or 20
+            if radius is None:
+                if "bore" not in feature.id.lower() and "hole" not in feature.id.lower():
+                    raise CADExecutionError(feature.id, "INVALID_CUT", "cut requires a tool dependency or a radius/diameter")
+                tool = _inferred_bore_tool(o, shapes[base_id])
+                return _cut(o, shapes[base_id], tool)
+            tool = _make_cylinder(
+                o,
+                float(radius),
+                float(height),
+                float(p.get("x", 0)),
+                float(p.get("y", 0)),
+                float(p.get("z", 0)),
+                float(p.get("dx_dir", 0)),
+                float(p.get("dy_dir", 0)),
+                float(p.get("dz_dir", 1)),
+            )
+            return _cut(o, shapes[base_id], tool)
+        result = shapes[base_id]
+        for tool_id in tool_ids:
+            if tool_id not in shapes:
+                raise CADExecutionError(feature.id, "INVALID_CUT", f"cut tool dependency '{tool_id}' was not produced")
+            tool = shapes[tool_id]
+            if tool.ShapeType() == 5:
+                tool = o["Face"](tool).Shape()
+            if tool.ShapeType() in {4, 5}:
+                distance_value = extrusion_dimension_for(p)
+                if distance_value is None:
+                    raise CADExecutionError(feature.id, "INVALID_CUT", f"profile tool '{tool_id}' requires a cut depth or distance")
+                direction = p.get("direction", [0, 0, 1])
+                vector = o["Vec"](*(float(value) * float(distance_value) for value in direction))
+                prism = o["Prism"](tool, vector, True)
+                if not prism.IsDone() or prism.Shape().IsNull():
+                    raise CADExecutionError(feature.id, "INVALID_CUT", f"profile tool '{tool_id}' could not be extruded")
+                tool = prism.Shape()
+            result = _cut(o, result, tool)
+        return result
+    if feature.type in {"pattern", "circular_pattern", "linear_pattern"}:
+        if current is None:
+            raise CADExecutionError(feature.id, "INVALID_PATTERN", "pattern requires a prior solid")
+        radius = _parameter_number(p, {"r", "radius", "hole_radius"})
+        if radius is None:
+            diameter = _parameter_number(p, {"diameter", "hole_diameter", "bolt_diameter"})
+            if diameter is not None:
+                radius = diameter / 2
+        if radius is None:
+            radius = 2.0
+        depth = extrusion_dimension_for(p) or 20.0
+        count = int(_parameter_number(p, {"count", "quantity", "instances"}) or 4)
+        count = max(count, 1)
+        pattern_kind = str(p.get("pattern_type", p.get("mode", "circular"))).lower()
+        result = current
+        if "rect" in pattern_kind or feature.type == "linear_pattern":
+            columns = int(_parameter_number(p, {"columns", "cols"}) or count)
+            rows = int(_parameter_number(p, {"rows"}) or 1)
+            column_spacing = _parameter_number(p, {"column_spacing", "col_spacing", "spacing"}) or 20.0
+            row_spacing = _parameter_number(p, {"row_spacing"}) or column_spacing
+            center_x = float(p.get("x", 0)); center_y = float(p.get("y", 0)); start_z = float(p.get("z", -1))
+            locations = [
+                (center_x + (column - (columns - 1) / 2) * column_spacing,
+                 center_y + (row - (rows - 1) / 2) * row_spacing)
+                for row in range(rows) for column in range(columns)
+            ]
+        else:
+            pitch_radius = _parameter_number(p, {"pattern_radius", "circle_radius", "bolt_circle_radius", "r_circle"}) or 25.0
+            start_angle = math.radians(float(p.get("start_angle", 0)))
+            center_x = float(p.get("x", 0)); center_y = float(p.get("y", 0)); start_z = float(p.get("z", -1))
+            locations = [
+                (center_x + pitch_radius * math.cos(start_angle + index * 2 * math.pi / count),
+                 center_y + pitch_radius * math.sin(start_angle + index * 2 * math.pi / count))
+                for index in range(count)
+            ]
+        for x, y in locations:
+            result = _cut(o, result, _make_cylinder(o, radius, depth + 2, x, y, start_z))
+        return result
     if feature.type in {"hole", "cut_cylinder", "pocket", "cut_box", "cut_sphere"}:
         if current is None:
             raise ValueError("subtractive feature requires a prior solid")
         op = "cut_cylinder" if feature.type in {"hole", "cut_cylinder"} else "cut_box" if feature.type in {"pocket", "cut_box"} else "cut_sphere"
         from app.services.program_executor import _make_cylinder, _make_box
         if op == "cut_cylinder":
-            tool = _make_cylinder(o, float(p.get("r", float(p["diameter"]) / 2)), float(p.get("h", p.get("depth", 20))), float(p.get("x", 0)), float(p.get("y", 0)), float(p.get("z", 0)), float(p.get("dx_dir", 0)), float(p.get("dy_dir", 0)), float(p.get("dz_dir", 1)))
+            radius = p.get("r")
+            if radius is None:
+                diameter = p.get("diameter")
+                if diameter is None:
+                    raise CADExecutionError(feature.id, "INVALID_CUT", "cylindrical cut requires a radius or diameter")
+                radius = float(diameter) / 2
+            tool = _make_cylinder(o, float(radius), float(p.get("h", p.get("depth", 20))), float(p.get("x", 0)), float(p.get("y", 0)), float(p.get("z", 0)), float(p.get("dx_dir", 0)), float(p.get("dy_dir", 0)), float(p.get("dz_dir", 1)))
         elif op == "cut_box":
             tool = _make_box(o, float(p["sx"]), float(p["sy"]), float(p["sz"]), float(p.get("x", 0)), float(p.get("y", 0)), float(p.get("z", 0)), bool(p.get("centered", True)))
         else:
@@ -240,6 +378,108 @@ def _execute_feature(o: dict, feature: CADFeature, shapes: dict[str, Any], curre
     if feature.type == "draft":
         return _draft_with_references(o, feature, current, topology_maps, topology_objects_by_feature)
     raise CADExecutionError(feature.id, "UNSUPPORTED_FEATURE", f"feature '{feature.type}' has no trusted OCC handler")
+
+
+def _direct_extrusion(o: dict, parameters: dict, distance: float) -> Any | None:
+    """Build a primitive only when Gemini supplied an explicit profile description."""
+    from app.services.program_executor import _make_box, _make_cylinder
+    x, y, z = (float(parameters.get(key, 0)) for key in ("x", "y", "z"))
+    diameter = _parameter_number(parameters, {
+        "diameter", "outer_diameter", "branch_diameter", "flange_diameter",
+        "port_diameter", "boss_diameter",
+    })
+    radius = _parameter_number(parameters, {"radius", "r", "branch_radius", "flange_radius", "port_radius"})
+    if diameter is not None or radius is not None:
+        value = float(radius) if radius is not None else float(diameter) / 2
+        direction = parameters.get("direction", [
+            parameters.get("dx_dir", 0),
+            parameters.get("dy_dir", 0),
+            parameters.get("dz_dir", 1),
+        ])
+        return _make_cylinder(o, value, distance, x, y, z,
+                              float(direction[0]), float(direction[1]), float(direction[2]))
+    width = _parameter_number(parameters, {
+        "width", "sx", "length", "plate_length", "base_length",
+        "top_head_length", "branch_width", "flange_width",
+    })
+    depth = _parameter_number(parameters, {
+        "depth", "sy", "width", "plate_width", "base_width",
+        "top_head_width", "branch_depth", "flange_depth",
+    })
+    if width is not None and depth is not None:
+        return _make_box(o, float(width), float(depth), distance, x, y, z, bool(parameters.get("centered", True)))
+    return None
+
+
+def _parameter_number(value: Any, names: set[str]) -> float | None:
+    if isinstance(value, dict):
+        label = str(value.get("name", value.get("key", value.get("parameter", "")))).lower().replace("-", "_").removesuffix("_mm")
+        if label in names and isinstance(value.get("value"), (int, float)):
+            return float(value["value"])
+        for key, item in value.items():
+            normalized = str(key).lower().replace("-", "_").removesuffix("_mm")
+            if normalized in names and isinstance(item, (int, float)):
+                return float(item)
+            found = _parameter_number(item, names)
+            if found is not None:
+                return found
+    elif isinstance(value, list):
+        for item in value:
+            found = _parameter_number(item, names)
+            if found is not None:
+                return found
+    return None
+
+
+def _inferred_bore_tool(o: dict, shape: Any) -> Any:
+    from OCC.Core.Bnd import Bnd_Box
+    from OCC.Core.BRepBndLib import brepbndlib_Add
+
+    bounds = Bnd_Box()
+    brepbndlib_Add(shape, bounds)
+    xmin, ymin, zmin, xmax, ymax, zmax = bounds.Get()
+    radius = max(min(xmax - xmin, ymax - ymin) * 0.2, 0.5)
+    axis = o["Ax2"](
+        o["Pnt"]((xmin + xmax) / 2, (ymin + ymax) / 2, zmin - 1),
+        o["Dir"](0, 0, 1),
+    )
+    return o["Cyl"](axis, radius, max(zmax - zmin + 2, 2)).Shape()
+
+
+def _highest_solid_face(shape: Any) -> Any | None:
+    from OCC.Core.GProp import GProp_GProps
+    from OCC.Core.BRepGProp import brepgprop_SurfaceProperties
+    from OCC.Core.TopAbs import TopAbs_FACE
+    from OCC.Core.TopExp import TopExp_Explorer
+
+    explorer = TopExp_Explorer(shape, TopAbs_FACE)
+    highest_face = None
+    highest_z = float("-inf")
+    while explorer.More():
+        face = explorer.Current()
+        properties = GProp_GProps()
+        brepgprop_SurfaceProperties(face, properties)
+        center = properties.CentreOfMass()
+        if center.Z() > highest_z:
+            highest_z = center.Z()
+            highest_face = face
+        explorer.Next()
+    return highest_face
+
+
+def _source_feature_id(feature: CADFeature, role: str, dependency_index: int = 0) -> str | None:
+    """Resolve explicit profile/path references before positional dependencies."""
+    parameters = feature.parameters
+    for key in (f"{role}_id", role, f"{role}_reference", f"{role}_feature", f"{role}_feature_id", "source_feature_id", "source"):
+        value = parameters.get(key)
+        if isinstance(value, str):
+            return value
+        if isinstance(value, dict):
+            for nested_key in ("feature_id", "id", "ref"):
+                nested = value.get(nested_key)
+                if isinstance(nested, str):
+                    return nested
+    return feature.depends_on[dependency_index] if len(feature.depends_on) > dependency_index else None
 
 
 def _reference_items(feature: CADFeature, topology_type: str, topology_maps: dict[str, dict[str, Any]]) -> list[tuple[dict, Any]]:

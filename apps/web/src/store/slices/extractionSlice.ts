@@ -43,7 +43,7 @@ export const createExtractionSlice: StateCreator<
       const formData = new FormData()
       formData.append('blueprint', file)
 
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000'
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8001'
       const res = await fetch(`${API_BASE}/extract`, {
         method: 'POST',
         body: formData,

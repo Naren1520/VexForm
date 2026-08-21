@@ -98,6 +98,10 @@ COORDINATE SYSTEM:
 RULES:
 - Always start with the largest/main body as the first step (cylinder or box).
 - Build additively first (fuse all bosses/flanges), THEN cut (bores, holes, slots).
+- Model bodies, flanges, bosses, and side branches as additive cylinder/box features when their dimensions and placement are given. Their depends_on may point to the existing solid so they fuse onto it.
+- Use extrude only when depends_on points to a separate sketch or profile face/wire. Never use an existing solid body as an extrude profile.
+- For side or inclined branches, include radius/diameter, length/height, position, and direction [dx,dy,dz] so the branch is oriented from the drawing rather than defaulting to vertical.
+- For bolt-hole patterns, include count, hole diameter/radius, pitch-circle radius or row/column spacing, and depth.
 - If a dimension is not shown in the drawing, make a reasonable engineering estimate.
 - Never leave a feature out because a dimension is missing — estimate it.
 - For a flanged part: main body first, then flanges (add_cylinder), then bore (cut_cylinder),
@@ -167,6 +171,7 @@ async def blueprint_to_program(
 
         genai.configure(api_key=settings.gemini_api_key)
         model = genai.GenerativeModel(settings.gemini_model)
+        logger.info(f"Starting CAD-IR extraction with Gemini model: {settings.gemini_model}")
         image_part = {"mime_type": mime_type, "data": image_bytes}
 
         async def _call():
@@ -175,7 +180,11 @@ async def blueprint_to_program(
                 None,
                 lambda: model.generate_content(
                     [_PROGRAM_PROMPT, image_part],
-                    generation_config={"temperature": 0.1, "max_output_tokens": 4096},
+                    generation_config={
+                        "temperature": 0.1,
+                        "max_output_tokens": 8192,
+                        "response_mime_type": "application/json",
+                    },
                 )
             )
             text = response.text.strip()
@@ -189,9 +198,15 @@ async def blueprint_to_program(
                     text = text[4:]
                 text = text.strip()
 
-            return json.loads(text)
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError as exc:
+                # Keep malformed model output visible; do not repair or execute it.
+                tail = text[max(0, exc.pos - 120):exc.pos + 120].replace("\n", " ")
+                raise ValueError(f"Gemini returned malformed JSON near: {tail}") from exc
 
-        program = await asyncio.wait_for(_call(), timeout=60.0)
+        # Multi-view engineering drawings can require more than one minute.
+        program = await asyncio.wait_for(_call(), timeout=180.0)
 
         if "cad_ir" in program:
             from app.cad.ir import CADModel
@@ -213,8 +228,8 @@ async def blueprint_to_program(
 
     except asyncio.TimeoutError:
         logger.error("Gemini blueprint_to_program timed out")
-    except json.JSONDecodeError as exc:
-        logger.error(f"Gemini returned invalid JSON: {exc}")
+    except ValueError as exc:
+        logger.error(f"Gemini CAD-IR response rejected: {exc}")
     except Exception as exc:
         logger.error(f"blueprint_to_program failed: {exc}")
 

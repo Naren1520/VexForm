@@ -13,6 +13,18 @@ export interface UiSlice {
   setExportingFormat: (fmt: 'step' | 'stl' | 'obj' | null) => void
 }
 
+function formatToastMessage(message: unknown): string {
+  if (typeof message === 'string') return message
+  if (message && typeof message === 'object') {
+    const error = message as { feature_id?: unknown; code?: unknown; message?: unknown }
+    const parts = [error.feature_id, error.code, error.message]
+      .filter((part): part is string | number => typeof part === 'string' || typeof part === 'number')
+    if (parts.length) return parts.join(' — ')
+    try { return JSON.stringify(message) } catch { return 'An unexpected error occurred' }
+  }
+  return String(message ?? 'An unexpected error occurred')
+}
+
 export const createUiSlice: StateCreator<UiSlice, [], [], UiSlice> = (set, get) => ({
   toasts: [],
   leftPanelWidthPct: 33,
@@ -21,7 +33,7 @@ export const createUiSlice: StateCreator<UiSlice, [], [], UiSlice> = (set, get) 
 
   addToast: (message: string, level: 'info' | 'error' = 'info') => {
     const id = crypto.randomUUID()
-    const toast: Toast = { id, message, level, createdAt: Date.now() }
+    const toast: Toast = { id, message: formatToastMessage(message), level, createdAt: Date.now() }
     set((s) => ({ toasts: [...s.toasts, toast] }))
     // Auto-dismiss after 5 seconds
     setTimeout(() => {

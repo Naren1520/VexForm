@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import Any, Literal
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class CoordinateSystem(BaseModel):
@@ -60,6 +60,56 @@ class DrawingView(BaseModel):
     features: list[str] = Field(default_factory=list)
     confidence: float = Field(default=1.0, ge=0, le=1)
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_view_type(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            label = value.strip()
+            raw_type = label.lower()
+            if "section" in raw_type:
+                view_type = "section"
+            elif "iso" in raw_type or "3d" in raw_type:
+                view_type = "isometric"
+            elif "top" in raw_type or "bottom" in raw_type:
+                view_type = "top"
+            elif "front" in raw_type:
+                view_type = "front"
+            elif "side" in raw_type or raw_type.startswith("view_c"):
+                view_type = "side"
+            elif "detail" in raw_type:
+                view_type = "detail"
+            else:
+                view_type = "unknown"
+            return {"id": raw_type.replace(" ", "_"), "view_type": view_type}
+        if not isinstance(value, dict):
+            return value
+        data = dict(value)
+        if "id" not in data and "view_id" in data:
+            data["id"] = data["view_id"]
+        if "id" not in data:
+            label = str(data.get("label") or data.get("type") or "view").strip()
+            data["id"] = label.lower().replace(" ", "_").replace("/", "_")
+        if "view_type" not in data and "type" in data:
+            data["view_type"] = data["type"]
+        raw_type = str(data.get("view_type", "unknown")).lower()
+        if raw_type not in {"front", "top", "side", "section", "detail", "isometric", "unknown"}:
+            if "section" in raw_type or raw_type.startswith("view_a"):
+                raw_type = "section"
+            elif "iso" in raw_type or "3d" in raw_type:
+                raw_type = "isometric"
+            elif "top" in raw_type or "bottom" in raw_type:
+                raw_type = "top"
+            elif "front" in raw_type:
+                raw_type = "front"
+            elif "side" in raw_type or raw_type.startswith("view_c"):
+                raw_type = "side"
+            elif "detail" in raw_type:
+                raw_type = "detail"
+            else:
+                raw_type = "unknown"
+        data["view_type"] = raw_type
+        return data
+
 
 class CADFeature(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -73,6 +123,31 @@ class CADFeature(BaseModel):
     output_type: Literal["wire", "face", "solid", "compound", "surface"] | None = None
     enabled: bool = True
     evidence: list[dict[str, Any]] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_feature_contract(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        data = dict(value)
+        if "depends_on" not in data:
+            for key in ("dependencies", "dependency_ids", "inputs"):
+                if key in data:
+                    dependencies = data[key]
+                    data["depends_on"] = dependencies if isinstance(dependencies, list) else [dependencies]
+                    break
+        parameters = dict(data.get("parameters") or {})
+        for key in ("profile_reference", "profile_feature", "profile_sketch", "sketch_id"):
+            if key in data and "profile_id" not in parameters:
+                parameters["profile_id"] = data[key]
+        for key in ("path_reference", "path_feature", "path_sketch", "path_id"):
+            if key in data and "path_id" not in parameters:
+                parameters["path_id"] = data[key]
+        data["parameters"] = parameters
+        feature_type = str(data.get("type", "")).lower().strip()
+        if feature_type == "extrusion":
+            data["type"] = "extrude"
+        return data
 
 
 class CADModel(BaseModel):

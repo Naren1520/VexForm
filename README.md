@@ -10,7 +10,7 @@ VexForm converts 2D mechanical engineering blueprints into validated, interactiv
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org)
 [![OpenCascade](https://img.shields.io/badge/OpenCascade-7.9-blue)](https://dev.opencascade.org)
-[![Gemini](https://img.shields.io/badge/Gemini-3.7_Flash-8B5CF6?logo=google&logoColor=white)](https://deepmind.google/technologies/gemini)
+[![Gemini](https://img.shields.io/badge/Gemini-3.6_Flash-8B5CF6?logo=google&logoColor=white)](https://deepmind.google/technologies/gemini)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 </div>
@@ -39,7 +39,7 @@ VexForm converts 2D mechanical engineering blueprints into validated, interactiv
 
 VexForm is a full-stack intelligent CAD platform targeting mechanical engineers. Upload a blueprint image (JPEG / PNG / PDF), and the system:
 
-1. Sends the drawing to **Gemini 3.7 Flash** for multi-view engineering interpretation.
+1. Sends the drawing to **Gemini 3.6 Flash** for multi-view engineering interpretation.
 2. Parses the response into a strict, structured **CAD-IR feature graph** with dimensions, dependencies, confidence, and evidence.
 3. Validates the graph, resolves topology references, and executes trusted features through **FastAPI + OpenCascade 7.9**.
 4. Streams the validated B-Rep tessellation to the interactive Three.js viewer with review, section, measurement, feature-tree, and STEP / STL / OBJ export support.
@@ -82,7 +82,7 @@ Each generated OCC feature receives topology metadata for its faces, edges, and 
 | Backend framework | FastAPI | 0.115.6 |
 | Backend runtime | Python | 3.11+ |
 | CAD kernel | pythonocc-core (OpenCascade) | 7.9.0 |
-| AI / Vision | Google Gemini 3.7 Flash | Configurable with `GEMINI_MODEL` |
+| AI / Vision | Google Gemini 3.6 Flash | Configurable with `GEMINI_MODEL` |
 | Validation | Pydantic | 2.9.2 |
 | Monorepo tooling | Turborepo + pnpm workspaces | -|
 | Frontend tests | Vitest + Testing Library | 2.1.8 |
@@ -112,7 +112,7 @@ Each generated OCC feature receives topology metadata for its faces, edges, and 
                     │   (Python 3.11)   │
                     │                   │
                     │  ┌─────────────┐  │
-                    │  │ /extract    │──┼──▶ Gemini 3.7 Flash
+                    │  │ /extract    │──┼──▶ Gemini 3.6 Flash
                     │  │ /generate   │  │    Vision API
                     │  │ /export/*   │  │
                     │  │ /health     │  │
@@ -138,7 +138,7 @@ Each generated OCC feature receives topology metadata for its faces, edges, and 
                              ▼
  ┌──────────────────────────────────────────────────────────────────┐
  │  2. POST /extract                                                │
- │     • Image sent to Gemini 3.7 Flash Vision API                  │
+ │     • Image sent to Gemini 3.6 Flash Vision API                  │
  │     • All drawing views are unified into one CAD-IR graph         │
  │     • Dimensions include confidence, source, and uncertainty      │
  │     • Returns: CAD-IR + review state + validation context        │
@@ -186,7 +186,7 @@ Each generated OCC feature receives topology metadata for its faces, edges, and 
 ## Generic CAD Pipeline
 
 ```
-Blueprint → Gemini 3.7 Flash → CAD-IR → Pydantic validation
+Blueprint → Gemini 3.6 Flash → CAD-IR → Pydantic validation
      → semantic review → dependency graph → trusted feature registry
      → OpenCascade 7.9 → topology lineage → BRepCheck
      → tessellation → Three.js / STEP / STL / OBJ
@@ -223,7 +223,7 @@ VexForm/
 │   │       │   └── export.py         # GET /export/{step,stl,obj}
 │   │       ├── services/
 │   │       │   ├── gemini_client.py  # Compatibility extraction client
-│   │       │   ├── blueprint_to_program.py # Gemini 3.7 Flash → CAD-IR
+│   │       │   ├── blueprint_to_program.py # Gemini 3.6 Flash → CAD-IR
 │   │       │   ├── extraction_provider.py # Real/mock provider boundary
 │   │       │   ├── confidence.py       # Deterministic confidence scoring
 │   │       │   ├── model_store.py       # Filesystem model revisions
@@ -346,7 +346,7 @@ Open `.env` and fill in your values:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-3.7-flash
+GEMINI_MODEL=gemini-3.6-flash
 SESSION_SECRET=any-random-string
 API_BASE_URL=http://localhost:8001
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8001
@@ -463,12 +463,12 @@ pnpm install
 
 #  Daily start: Terminal 1 (API) 
 conda activate vexform
-cd apps/api
 uvicorn main:app --reload --host 0.0.0.0 --port 8001
 
 #  Daily start: Terminal 2 (Web) -open a new terminal 
 cd apps/web
-pnpm dev
+pnpm devcd apps/api
+
 ```
 
 ---
@@ -489,7 +489,7 @@ pnpm turbo dev
 | Variable | Required | Description |
 |---|---|---|
 | `GEMINI_API_KEY` | Yes | Google Gemini Vision API key |
-| `GEMINI_MODEL` | No | Gemini model used for structured CAD-IR extraction (default: `gemini-3.7-flash`) |
+| `GEMINI_MODEL` | No | Gemini model used for structured CAD-IR extraction (default: `gemini-3.6-flash`) |
 | `SESSION_SECRET` | No | Session signing secret (default: dev value) |
 | `API_BASE_URL` | No | Internal server-side API URL (default: `http://localhost:8000`) |
 | `NEXT_PUBLIC_API_BASE_URL` | Yes | Public client-side API URL -must match where uvicorn is running |
@@ -505,7 +505,7 @@ Base URL: `http://localhost:8001`
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/health` | Service health check + OpenCascade version |
-| `POST` | `/extract` | Upload blueprint image → Gemini 3.7 Flash → CAD-IR + review context |
+| `POST` | `/extract` | Upload blueprint image → Gemini 3.6 Flash → CAD-IR + review context |
 | `POST` | `/generate` | Submit CAD-IR → build validated B-Rep → return mesh + feature tree |
 | `POST` | `/validate` | Validate a CAD-IR document without executing geometry |
 | `POST` | `/modify` | Apply a structured update/add/remove to CAD-IR and rebuild |
@@ -622,3 +622,8 @@ The store is connected to **Redux DevTools** under the name `VexFormStore` for e
 Built with precision by **Naren S J** · [narensj.netlify.app](https://narensj.netlify.app)
 
 </div>
+
+conda activate vexform
+cd /d "C:\Users\Naren S J\Downloads\VexForm\apps\api"
+set PYTHONPATH=C:\Users\Naren S J\Downloads\VexForm\apps\api
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8001

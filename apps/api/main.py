@@ -44,3 +44,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=500, content={"error": str(exc)})
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="127.0.0.1", port=8001)

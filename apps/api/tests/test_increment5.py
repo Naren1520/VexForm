@@ -4,7 +4,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from app.cad.ir import CADFeature, CADModel, semantic_issues, review_state
+from app.cad.ir import CADFeature, CADModel, semantic_issues, review_state, validate_cad_ir
+from app.cad.ir.models import DrawingView
 from app.cad.ir.extraction import CADIRExtractionResponse
 from app.services.confidence import calculate_confidence
 from app.services.extraction_provider import MockGeminiProvider
@@ -36,6 +37,36 @@ def test_semantic_conflict_and_review_state_are_structured():
     assert calculate_confidence(model, [issue.message for issue in issues]) < 0.9
 
 
+def test_extrusion_dimension_aliases_are_accepted():
+    for key in ("distance", "depth", "height", "length", "thickness", "extrusion_distance", "extrusion_length", "stem_length", "port_length"):
+        model = CADModel(features=[CADFeature(id="extrude", type="extrude", parameters={key: 40})])
+        assert not any("extrusion" in error for error in validate_cad_ir(model))
+    model = CADModel(features=[CADFeature(id="extrude", type="extrude", parameters={"dimensions": {"port_length": 40}})])
+    assert not any("extrusion" in error for error in validate_cad_ir(model))
+
+
+def test_gemini_dependency_aliases_are_normalized():
+    feature = CADFeature.model_validate({
+        "id": "f1_main_stem", "type": "extrusion",
+        "dependencies": ["profile_01"],
+        "profile_reference": "profile_01",
+        "parameters": {"length_mm": 25},
+    })
+    assert feature.type == "extrude"
+    assert feature.depends_on == ["profile_01"]
+    assert feature.parameters["profile_id"] == "profile_01"
+
+
+def test_explicit_profile_dimensions_can_represent_first_extrusion():
+    feature = CADFeature.model_validate({
+        "id": "f1", "type": "extrude",
+        "parameters": {"diameter": 36, "length": 118},
+    })
+    assert feature.depends_on == []
+    model = CADModel(features=[CADFeature(id="extrude", type="extrude", parameters={"dimensions": [{"name": "length_mm", "value": 40}]} )])
+    assert not any("extrusion" in error for error in validate_cad_ir(model))
+
+
 def test_disabled_feature_is_preserved_in_ir():
     model = CADModel(features=[CADFeature(id="optional", type="fillet", enabled=False)])
     assert model.features[0].enabled is False
@@ -60,3 +91,11 @@ def test_fixture_metadata_is_semantic_not_byte_comparison():
         assert metadata["name"] == fixture
         assert (root / fixture / "drawing.svg").exists()
         assert (root / fixture / "expected_cad_ir.json").exists()
+
+
+def test_gemini_view_type_aliases_are_normalized():
+    assert DrawingView.model_validate({"id": "view_front_section", "type": "section_a_a"}).view_type == "section"
+    assert DrawingView.model_validate({"id": "view_iso", "type": "3D Render"}).view_type == "isometric"
+    assert DrawingView.model_validate({"view_id": "view_top", "view_type": "top"}).id == "view_top"
+    assert DrawingView.model_validate("SECTION A-A").view_type == "section"
+    assert DrawingView.model_validate({"type": "top", "label": "Top View"}).id == "top_view"
