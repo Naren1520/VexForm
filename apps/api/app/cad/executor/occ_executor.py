@@ -188,7 +188,12 @@ def _execute_feature(o: dict, feature: CADFeature, shapes: dict[str, Any], curre
     if feature.type in {"box", "cylinder", "cone", "sphere", "torus"}:
         operation = {"op": feature.type, **p}
         if feature.type == "box":
-            shape = _make_box(o, float(p["sx"]), float(p["sy"]), float(p["sz"]), float(p.get("x", 0)), float(p.get("y", 0)), float(p.get("z", 0)), bool(p.get("centered", True)))
+            size_x = _parameter_number(p, {"sx", "size_x", "length", "width", "plate_length", "base_length"})
+            size_y = _parameter_number(p, {"sy", "size_y", "depth", "width", "plate_width", "base_width"})
+            size_z = _parameter_number(p, {"sz", "size_z", "height", "thickness", "plate_height", "base_height"})
+            if size_x is None or size_y is None or size_z is None:
+                raise CADExecutionError(feature.id, "INVALID_BOX", "box requires length/width/height or sx/sy/sz")
+            shape = _make_box(o, size_x, size_y, size_z, float(p.get("x", 0)), float(p.get("y", 0)), float(p.get("z", 0)), bool(p.get("centered", True)))
         elif feature.type == "cylinder":
             radius = p.get("r", p.get("radius"))
             if radius is None:
@@ -206,6 +211,8 @@ def _execute_feature(o: dict, feature: CADFeature, shapes: dict[str, Any], curre
     if feature.type in {"extrude", "rib"}:
         source_id = _source_feature_id(feature, "profile")
         distance_value = extrusion_dimension_for(p)
+        if source_id is None or source_id not in shapes:
+            distance_value = _profile_free_extrusion_distance(p) or distance_value
         distance = float(distance_value) if distance_value is not None else 0.0
         if source_id is None or source_id not in shapes:
             if distance <= 0:
@@ -213,7 +220,7 @@ def _execute_feature(o: dict, feature: CADFeature, shapes: dict[str, Any], curre
             direct_shape = _direct_extrusion(o, p, distance)
             if direct_shape is None:
                 raise CADExecutionError(feature.id, "INVALID_PROFILE", "extrusion profile is missing; provide a sketch dependency or explicit circular/rectangular profile dimensions")
-            return direct_shape
+            return direct_shape if current is None else _fuse(o, current, direct_shape)
         source = shapes[source_id]
         if source.ShapeType() not in {4, 5}:
             direct_shape = _direct_extrusion(o, p, distance)
@@ -429,6 +436,13 @@ def _parameter_number(value: Any, names: set[str]) -> float | None:
             if found is not None:
                 return found
     return None
+
+
+def _profile_free_extrusion_distance(parameters: dict) -> float | None:
+    return _parameter_number(parameters, {
+        "height", "thickness", "extrusion_height", "plate_height", "base_height",
+        "head_height", "boss_height", "branch_height",
+    })
 
 
 def _inferred_bore_tool(o: dict, shape: Any) -> Any:
